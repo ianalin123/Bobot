@@ -1,0 +1,9 @@
+{
+  "name": "bob-robot",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test web/*.test.mjs",
+    "start": "uv run uvicorn bob.server:app --host 127.0.0.1 --port 8766"
+  }
+}

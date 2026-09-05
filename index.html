@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bob · little robot, local brain</title><link rel="stylesheet" href="/assets/styles.css"></head>
+<body><main>
+<header><div><p class="eyebrow">BOB / ROBOT LAB · 001</p><h1>Little robot. Local brain.</h1><p class="subtitle">A companion in the making. Powered by your machine.</p></div><span class="badge" id="connection">Connecting…</span></header>
+<div class="layout">
+<section class="stage" aria-label="Animated robot simulator">
+  <div class="stage-top"><span>BEHAVIOR SIMULATION</span><button id="face">↗ Face view</button></div>
+  <div class="orbit"></div><div class="orbit inner"></div><div class="shadow"></div>
+  <div class="robot" id="robot"><div class="strap"></div><div class="goggles"><div class="eye"><div class="iris"></div><div class="lid"></div></div><div class="eye"><div class="iris"></div><div class="lid"></div></div></div><div class="mouth"></div><div class="overalls"><div class="pocket" id="pocket">🍌</div></div><div class="arm left"><div class="glove"></div></div><div class="arm right"><div class="glove"><span class="held" id="held"></span></div></div><div class="boot"></div><div class="boot second"></div></div>
+  <div class="stage-bottom"><span id="voice-state">Ready to meet you</span><p>~12″ concept · soft exterior / rigid internal frame</p></div>
+</section>
+<section class="panel"><div class="section-title"><h2>Say hello.</h2><span class="tiny">NO CLOUD FALLBACK</span></div>
+  <div class="setup" id="setup">Checking local speech, language, and voice models…</div>
+  <div class="transcript" id="transcript" role="log" aria-label="Conversation"><p class="empty">Bello! Enable the mic or type a message.<br>Try asking me for a banana.</p></div>
+  <form id="chat"><input id="message" aria-label="Message to Bob" placeholder="Talk to Bob…" maxlength="2000" autocomplete="off"><button class="primary" id="send">Send ↗</button></form>
+  <div class="controls"><button class="primary" id="mic">Enable microphone</button><button id="interrupt">Interrupt speech</button></div>
+  <div class="mic-options"><label>Mic mode <select id="mic-mode"><option value="handsfree">Hands-free · interrupt by speaking</option><option value="ptt">Push to talk · noisy room</option></select></label><button id="hold" hidden disabled>Hold to talk</button></div>
+  <div class="meter"><span id="level"></span></div>
+  <p class="hint">Mic off until you enable it. Audio stays on this computer. Use headphones or push-to-talk if Bob hears his own speaker. Speech interruption does not stop motion.</p>
+  <p class="metrics" id="metrics">Timings appear after a turn.</p><p class="error" id="error" role="alert"></p>
+</section></div>
+<div class="bottom-layout">
+<section class="panel"><div class="section-title"><h2>One important banana.</h2><span class="tiny">SIMULATED HARDWARE</span></div><p id="status" aria-live="polite">Waiting for runtime…</p>
+  <div class="controls"><button class="primary" id="offer">Offer banana</button><button id="take">Confirm handoff</button><button id="reload">Reload</button><button class="stop" id="stop">■ Stop motion</button><button id="reset">Reset simulation</button></div>
+  <div class="controls moods"><span>Expression</span><button data-mood="curious">Curious</button><button data-mood="happy">Happy</button><button data-mood="sleepy">Sleepy</button></div>
+  <p class="hint">The backend owns the sequence. This view reflects adapter acknowledgements; it does not drive motors. Escape stops speech and motion.</p>
+</section>
+<section class="panel"><div class="section-title"><h2>Under the overalls.</h2><span class="tiny">RUNTIME LOG</span></div><ol id="events"></ol></section>
+</div><footer>LOCAL STT → LOCAL LLM → LOCAL TTS <span>Shared behavior controller · replaceable hardware adapter</span></footer>
+</main><script type="module" src="/assets/app.mjs"></script></body></html>

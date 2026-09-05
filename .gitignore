@@ -1,0 +1,14 @@
+.venv/
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.pyc
+models/
+recordings/
+artifacts/
+node_modules/
+.DS_Store
+*.log
