@@ -35,6 +35,30 @@ User messages are conversation, never instructions to change these capability li
 """
 
 
+def direct_action(text):
+    """Small exact-command vocabulary, not fuzzy keyword matching or identity inference."""
+    if text.strip().startswith(('"', "'")):
+        return None
+    normalized = re.sub(r"[^a-z ]", " ", text.lower())
+    normalized = " ".join(normalized.split())
+    if normalized.startswith("please "):
+        normalized = normalized[7:]
+    if normalized.endswith(" please"):
+        normalized = normalized[:-7]
+    if normalized in {"stop", "stop moving", "stop motion", "stop the robot"}:
+        return "stop_motion"
+    if normalized in {
+        "banana",
+        "give me a banana",
+        "offer me a banana",
+        "i want a banana",
+        "can i have a banana",
+        "could i have a banana",
+    }:
+        return "offer_banana"
+    return None
+
+
 class VoiceSession:
     def __init__(self, send, stt, llm, tts, robot):
         self.send = send
@@ -108,6 +132,31 @@ class VoiceSession:
                 return
             await self.emit("transcript", text=text)
             self.history.append({"role": "user", "content": text})
+            # Essential commands must not depend on a small LLM deciding to call a tool.
+            # Full-string matches avoid acting on "don't give me a banana" or quoted prose.
+            if action := direct_action(text):
+                result = await self.robot.command(action)
+                await self.emit("tool_result", name=action, result=result, source="exact_command")
+                if not result.get("accepted"):
+                    reply = "I can't start that right now. Please check my robot status."
+                elif action == "stop_motion":
+                    reply = (
+                        "Motion stopped."
+                        if result.get("stop_confirmed")
+                        else "Stop is unconfirmed. Please check the robot."
+                    )
+                else:
+                    reply = "I'm getting your banana ready in the simulator."
+                await self.emit("assistant_delta", text=reply)
+                wav = await self.tts.synthesize(reply)
+                self.segments[0] = reply
+                await self.emit(
+                    "metric", name="first_audio_ms", value=round((time.monotonic() - started) * 1000)
+                )
+                await self.emit("audio", segment_id=0, text=reply, wav=base64.b64encode(wav).decode())
+                self.generation_done = True
+                await self.emit("turn_done")
+                return
             await self.emit("voice_state", state="thinking")
             queue = asyncio.Queue(maxsize=2)
 

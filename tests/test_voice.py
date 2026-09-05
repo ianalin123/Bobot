@@ -6,7 +6,7 @@ import pytest
 
 from bob.providers import LocalLLM, decode_wav
 from bob.robot import Robot, SimHardware
-from bob.voice import VoiceSession
+from bob.voice import VoiceSession, direct_action
 
 
 class LLM:
@@ -97,7 +97,7 @@ async def test_tools_are_allowlisted_and_behavior_is_shared():
                 yield {"content": "I am getting your banana ready."}
 
     voice, events = session(llm=ToolLLM())
-    await voice.start(1, text="Banana please")
+    await voice.start(1, text="Would you offer me one of your bananas?")
     await voice.task
     results = [e for e in events if e["type"] == "tool_result"]
     assert results[0]["result"]["accepted"]
@@ -143,3 +143,30 @@ def test_cloud_and_remote_inference_are_rejected(monkeypatch):
     monkeypatch.setenv("BOB_MODEL", "some-model:cloud")
     with pytest.raises(ValueError):
         LocalLLM()
+
+
+def test_exact_commands_do_not_match_negated_or_quoted_requests():
+    assert direct_action("Please give me a banana.") == "offer_banana"
+    assert direct_action("Stop moving!") == "stop_motion"
+    for text in [
+        "Don't give me a banana",
+        "Do not stop",
+        "Tell a story about a banana",
+        "He said give me a banana",
+        "I dislike bananas",
+    ]:
+        assert direct_action(text) is None
+
+
+async def test_exact_command_works_even_when_model_is_unreliable():
+    class BrokenLLM:
+        async def stream(self, messages, tools):
+            raise AssertionError("Exact commands must bypass the model")
+            yield
+
+    voice, events = session(llm=BrokenLLM())
+    await voice.start(1, text="Please give me a banana.")
+    await voice.task
+    assert any(e["type"] == "tool_result" and e["source"] == "exact_command" for e in events)
+    await voice.robot.task
+    assert voice.robot.state.phase == "waiting"

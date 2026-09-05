@@ -15,6 +15,8 @@
 
 No motor coordinates, voltages or joint targets are exposed to the language model. It can request a banana or a stop, not arbitrary Python/shell/browser operations. State checks reject duplicate, busy, empty and stopped requests. A small LLM can misunderstand intent; do not treat prompting as a physical safety mechanism.
 
+Exact phrases such as “Please give me a banana” and “Stop moving” bypass LLM interpretation and return a bounded state-based acknowledgement. This was added after real testing found that the small model sometimes narrated a handoff without calling its tool. The matcher uses a narrow full-string vocabulary, not a banana keyword search; negated requests and longer prose do not match. Less exact phrasings still use the model's allowlisted tools and can be misunderstood. Keep the UI controls and physical stop available.
+
 ## Physical adapter contract
 
 `perform(action)` returns only after the requested operation completes, or raises on failure. Actions are `open_compartment`, `grasp_banana`, `present_banana`, `release_banana`, `stow_arm`, `close_compartment`. The behavior transitions banana ownership only after the corresponding acknowledgement. `stop()` must stop actuation and acknowledge the result. Runtime calls have bounded deadlines.
@@ -31,7 +33,7 @@ The browser's `take_banana` and `reload` are manual confirmations. Replace or co
 4. CPU transcription already in native code may finish; its cancelled coroutine cannot publish a transcript, invoke a tool or speak. A lock prevents simultaneous native transcriptions. Repeated interruptions can still create a compute backlog; quantify this before an always-on deployment.
 5. Each audio segment has started/finished acknowledgements. Conversation history retains fully played sentences, not everything generated. Partial sentences are not treated as fully heard.
 
-Speech cancellation deliberately does not cancel an already accepted robot action. Stop motion / Escape are the explicit combined stop controls. Spoken stop requests still depend on successful STT and interpretation; they are a convenience, never an emergency-stop circuit.
+Speech cancellation deliberately does not cancel an already accepted robot action. Stop motion / Escape are the explicit combined stop controls. Exact spoken stop requests bypass the LLM but still depend on successful STT; they are a convenience, never an emergency-stop circuit.
 
 Hands-free VAD is simple fixed-threshold energy detection with a pre-roll and ~650 ms trailing silence, not speaker recognition. It has a 15-second utterance limit. Browser acoustic echo cancellation is requested, not guaranteed; use PTT/headphones in difficult acoustic conditions. TTS uses sentence chunks, not a full-duplex speech-to-speech model. First-audio metric is measured from server turn receipt, excluding client end-of-speech delay, network transit and device playback startup.
 

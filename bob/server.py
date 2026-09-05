@@ -132,15 +132,6 @@ async def websocket(ws: WebSocket):
                 if kind == "interrupt":
                     await session.interrupt(request_id)
                 elif kind in {"user_text", "audio_turn"}:
-                    if not readiness["llm"]["ready"]:
-                        await send(
-                            {
-                                "type": "error",
-                                "request_id": request_id,
-                                "message": "Local model not ready. Check the setup panel.",
-                            }
-                        )
-                        continue
                     if kind == "user_text":
                         text = data.get("text", "")
                         if not isinstance(text, str) or len(text) > 2000:

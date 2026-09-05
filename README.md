@@ -34,7 +34,7 @@ Optional settings are in `.env.example`. To use a local `.env`, launch with `--e
 
 ## Try it
 
-1. Say/type “Hello Bob,” then “Please give me a banana.” The local model can request the same behavior as the Offer button.
+1. Say/type “Hello Bob,” then “Please give me a banana.” Conversation uses the local model; exact banana/stop commands directly invoke the same behavior as the buttons. Other phrasings can use model tool calls but are less reliable.
 2. In hands-free mode, start speaking while Bob talks. Playback stops locally before transcription finishes; old inference and queued speech are cancelled. Short noise spikes are filtered.
 3. If speaker echo or room chatter causes interruptions, use headphones or switch to **Push to talk**. Hold the button with pointer, Space, or Enter. Microphone permission is opt-in.
 4. Click **Confirm handoff** after presentation; this is a manual simulated recipient event. Reload before another delivery.
@@ -69,7 +69,7 @@ These tests use fake providers and do not download models or open a mic. For a r
 uv run python -m scripts.smoke_local
 ```
 
-This checks HTTP asset isolation, local STT → LLM → valid WAV, interruption, a model tool call, and simulated handoff. It does not prove actual browser playback, acoustic echo cancellation, or physical safety. The smoke test changes simulator state and closes its controller; reset the simulator when opening the UI afterward.
+This checks HTTP asset isolation, local STT → LLM → valid WAV, interruption, exact-command dispatch, and simulated handoff. It does not prove actual browser playback, acoustic echo cancellation, or physical safety. The smoke test changes simulator state and closes its controller; reset the simulator when opening the UI afterward.
 
 ## Build toward hardware
 

@@ -81,7 +81,8 @@ async def main():
         await ws.send(json.dumps({"type": "user_text", "request_id": 3, "text": "Please give me a banana."}))
         tool = await receive_until(ws, lambda m: m["type"] == "tool_result")
         assert tool["name"] == "offer_banana" and tool["result"]["accepted"], tool
-        print("Local model invoked shared banana behavior:", tool["result"], flush=True)
+        assert tool["source"] == "exact_command"
+        print("Exact voice/text command invoked shared banana behavior:", tool["result"], flush=True)
         await receive_until(ws, lambda m: m["type"] == "robot_state" and m["state"]["phase"] == "waiting")
         await ws.send(json.dumps({"type": "action", "action": "take_banana"}))
         done = await receive_until(
