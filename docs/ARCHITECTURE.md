@@ -1,5 +1,13 @@
 # Architecture
 
+## September 6 deployment decision (planned, not implemented)
+
+Target: borrowed **12V SO-101 on a LeKiwi base**, Pi for robot-local I/O, existing computer for AI over Wi-Fi. The table below describes today's local runtime and eventual onboard options, not an already working distributed system.
+
+Add authenticated robot transport, command IDs/expiry, reconnect handling, hardware acknowledgements and local motion watchdogs before remote operation. Do not expose the current unauthenticated localhost server to the LAN. Keep localhost-only defaults. Playback cancellation must execute on the robot audio client without waiting for a Wi-Fi round trip. Pi audio/eye clients and the physical adapter remain unimplemented.
+
+Preserve the borrowed controller for initial bench tests. A separate arm/base-controller topology needs an explicit driver; stock LeKiwi's shared bus cannot be assumed to control it unchanged. See [hardware baseline](HARDWARE.md).
+
 ## One reusable behavior layer
 
 `web/` captures audio and renders the latest backend state. `bob/voice.py` orchestrates local providers and exposes only `offer_banana` and `stop_motion` to the LLM. `bob/robot.py` validates requests, owns action sequencing, and consumes hardware acknowledgements. The current `SimHardware` supplies delayed acknowledgements. The future physical adapter must supply measured completion/failure.

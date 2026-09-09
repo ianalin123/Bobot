@@ -1,30 +1,57 @@
-# First orders and borrowed hardware
+# Bob: 12V mobile-arm prototype shopping list
 
-Checked September 4, 2026. These are product candidates, not a purchased cart. Amazon delivery dates, selected variants, seller identity, stock and prices must be checked using the actual delivery address. No delivery dates are verified here.
+Updated September 9, 2026. User reports that the listed first-batch hardware has been ordered or borrowed. The **camera module is still missing**. Exact received contents, delivery status, delivery dates, address-specific availability and Amazon sellers remain unverified here.
 
-## Order / borrow now
+This supersedes the small-rover / bench-only-arm plan. LeKiwi is the selected development platform, not a physically validated finished Bob. One-foot plush size does not mean one-foot overall robot height or that the arm fits inside it.
 
-| Item | Quantity | Why / conditions |
+## First batch: buy or borrow for development
+
+| Item | Qty | Selection / status |
 | --- | --- | --- |
-| [CanaKit Raspberry Pi 5 starter kit](https://www.amazon.com/dp/B0CRSNCJ6Y) | 1 if no spare Pi; not required for today's simulator | Linked variant is 8GB. Evaluate as an I/O controller/client; fully onboard STT + LLM + TTS latency is not verified. The current local voice runs on a Mac, not the Pi. Verify PSU, cooling and microSD are included in the selected kit. Start with its wall supply for bench work. |
-| [Anker PowerConf S330 USB speakerphone](https://www.amazon.com/dp/B09FJ7LWX4) | 1 if no borrowed speakerphone | Microphones and speaker in one unit for laptop voice development. This is a bench audio choice, not a promise it will fit inside Bob. Laptop audio can be used immediately. |
-| [Waveshare 1.28-inch GC9A01 round LCD](https://www.amazon.com/dp/B08V5538C6) | 1 evaluation unit; eventually 2 | SPI display, not a USB monitor. Active circle is 32.4 mm diameter; module is approximately 40.4 × 37.5 mm. Needs controller code and wiring. Confirm eye size and goggle clearance before committing both eyes to this size. |
-| USB data cables, jumper wires, small breadboard, heat-shrink, M2/M3 assortment | As needed | Borrow first; check connector types. Dupont jumpers are for signals/light loads, not motor power. |
-| [Bob plush at Target](https://www.target.com/p/-/A-89787224) | 1 | Verified candidate for the desired scale: 12.5 × 8.5 × 6 inches. This listing says Target exclusive; an equivalent Amazon donor body has not been verified. Weighted fill must be removed for the conversion. |
+| Borrowed 12V SO-101 follower, controller, matched supply and USB data cable | 1 set | Borrow together; no duplicate arm purchase. Voltage confirmed by user; record exact servo/controller labels at intake. |
+| [Seeed LeKiwi 12V base kit](https://www.seeedstudio.com/Lekiwi-Kit-p-6501.html), SKU 114090065 | 1 | $179 / listed in stock. Self-assembly base with printed parts and electronics; do not add another arm. Title mentions battery but wiki lists it as optional: check the selected package contents before paying. |
+| [Raspberry Pi 5 4GB](https://www.raspberrypi.com/products/raspberry-pi-5/) | 1 if not borrowed | Robot I/O, not AI inference. Add official Active Cooler, official 27W USB-C bench supply and 32GB+ microSD if missing. No need for the earlier 8GB/128GB kit solely for I/O. |
+| Camera module | 1 | **Missing from the current order.** Select a camera only after confirming Pi interface, cable/USB port budget, mounting position, field of view and privacy/shutdown behavior. Do not treat the optional spare USB port as an ordered camera. |
+| [ReSpeaker Lite](https://www.seeedstudio.com/ReSpeaker-Lite-p-5928.html), SKU 107990273 | 1 evaluation unit | Select 2-mic / XU316 / without XIAO / without case. $24.90 / listed in stock. Board 35 × 86 mm; USB 5V, USB firmware. Test full-duplex and interruption behavior in Bob. |
+| [Seeed Mono Enclosed Speaker 4Ω 5W](https://www.seeedstudio.com/Mono-Enclosed-Speaker-4R-5W-p-5931.html), SKU 114993346 | 1 | $2 / listed in stock. Manufacturer pairs it with ReSpeaker Lite. **50 × 45 × 22 mm**, already enclosed; check supplied lead/connector. Replaces bare Adafruit speaker candidate; no separate amplifier purchase for this pairing. |
+| [Target Bob donor plush](https://www.target.com/p/-/A-89787224), TCIN 89787224 | 1 | $21.99 listed. External **12.5 H × 8.5 W × 6 D inches**, not usable interior dimensions. Remove weighting and weigh remaining shell. Not structural support. |
+| USB data cables, hook-and-loop straps, cable ties, heat-shrink, M2/M3/M4 hardware | As needed | Borrow first; deduct kit contents. Match connector ends and fastener lengths to actual hardware. Signal jumpers/breadboards must not carry motor current. |
 
-Product documentation:
-- [CanaKit kit contents](https://www.canakit.com/canakit-raspberry-pi-5-starter-kit-turbine-black.html)
-- [Anker S330 features](https://uk.ankerwork.com/products/a3308): USB audio, full-duplex and echo cancellation. Use it for both capture and playback. The manufacturer FAQ calls for USB power of at least 5V/2A; confirm supply/port capability, especially when adding it to a Pi.
-- [Waveshare LCD dimensions and interface](https://www.waveshare.com/wiki/1.28inch_LCD_Module)
+Bench USB plan: Pi ports for arm controller, base controller and ReSpeaker; one spare for an optional camera. This preserves borrowed arm electronics initially but needs a two-controller adapter: stock LeKiwi software expects a shared servo bus. Combine buses only after confirming protocol, IDs, wiring and current ratings. More USB devices require a new port/power budget.
 
-## Resolve before the next order
+## Eyes: evaluate one, then buy the matched pair
 
-1. Borrowed arm: exact model, controller, matched supply, leader arm if available. Keep a borrowed SO-101 intact for bench experiments.
-2. Base: actual usable plush footprint, total loaded mass, wheel clearance, control interface. A chassis shown in an online photograph is not a fit check.
-3. Compact arm: one fixed banana cradle permits a simpler lift-and-grip mechanism. Choose servos from measured lever arms and total loads, not advertised stall torque alone.
-4. Battery and regulator: match the selected base, servo voltage and Pi demand. The Pi wall supply in the first kit is for bench work; a generic USB power bank is not automatically suitable for the whole robot.
-5. Final eyes: compare 32.4 mm visible circles against the actual goggles. A larger display may better fit Bob's face, but must also fit the PCB and connector envelope.
+Candidate: [Waveshare ESP32-S3-Touch-LCD-1.85](https://docs.waveshare.com/ESP32-S3-Touch-LCD-1.85), **SKU 28514, not B/C variants**. Buy one if ready to evaluate firmware and a custom goggle mount; final quantity two.
 
-## Work immediately
+Each is a 360 × 360 round LCD plus ESP32-S3, with **55 × 55 mm PCB**. Two boards require at least **110 mm plus gap, mounting and cable clearance**. Nominal visible diameter is about 47 mm, not PCB width. Depth and actual goggle aperture remain unverified. These are development boards, not USB monitors; this repo does not yet contain their eye firmware.
 
-Use the local face/behavior simulator. Start conversational audio on a laptop. If an arm is available, test a real banana handoff independently. These tasks do not need the plush or mobile base to arrive first.
+If preserving original goggles is mandatory, measure them before buying final screens. Do not order two 1.28-inch panels on the assumption they fit or look right.
+
+## Required before untethered operation: not yet a finalized order
+
+| Assembly | Qty | Acceptance condition |
+| --- | --- | --- |
+| Protected motor battery with matching charger | 1 system | Actual servo voltage tolerance, continuous/peak demand, connector ratings, undervoltage behavior, mass and retention. A nominal 12V label or Ah rating alone is insufficient. |
+| Regulated 5V compute/audio/eye power | 1 system | Pi-compatible supply and USB power budget under simultaneous load; verify kit converter capacity and USB-C behavior. |
+| Motor disconnect, fuses, distribution and rated wiring/connectors | 1 system | Independently stop arm/base without Wi-Fi/Python; no auto-restart. Account for gravity-driven arm collapse when torque is removed. |
+| Rigid arm mount, plush carrier, guards and removable banana cradle | 1 set | Measured hole pattern, arm sweep, wheel clearance, center of mass, retention and supervised tip tests. Fabric is not a load path. |
+| Grip/cradle sensing | As tests require | Joint position alone does not prove a banana is held. Supervised manual confirmation is acceptable initially. |
+
+Start on separate matched wall supplies. Seeed lists a **12V/2A** adapter; this is not approved here for combined arm + base + Pi loads. The upstream 12V/5A battery is a reference, not proof it covers our added hardware. Never parallel supply outputs or feed 12V into Pi/audio/eye USB ports.
+
+## Evidence and reviews
+
+- [Official LeKiwi setup](https://huggingface.co/docs/lerobot/lekiwi) documents mobile-arm/network control. [Owner issue #24](https://github.com/SIGRobotics-UIUC/LeKiwi/issues/24) reports combined arm/wheel failures; [issue #14](https://github.com/SIGRobotics-UIUC/LeKiwi/issues/14) reports URDF problems. Not reproduced here. Store shows one rating; its review text was not verified. This is not a thoroughly review-vetted appliance.
+- [ReSpeaker owner discussion](https://forum.seeedstudio.com/t/3-broken-and-unusable-respeaker-lite/291165) includes failures and positive AEC/interruption reports; some failures involved I2S/soldering, not our USB path. Buy one for testing, not on a reliability guarantee.
+- Visible Target reviews support plush feel/size, not robot conversion or eye clearance.
+- Exact eye-board documentation exists; no independently reproduced reliability/fit test here.
+
+Primary references: [Seeed base BOM/wiring](https://wiki.seeedstudio.com/lerobot_lekiwi/), [upstream BOM](https://github.com/SIGRobotics-UIUC/LeKiwi/blob/main/BOM.md), [ReSpeaker dimensions/USB firmware](https://wiki.seeedstudio.com/reSpeaker_usb_v3/), [speaker manufacturer datasheet](https://files.seeedstudio.com/Bazaar/product_pdf/114993346.pdf), [eye dimensions](https://docs.waveshare.com/ESP32-S3-Touch-LCD-1.85).
+
+## Immediate build sequence
+
+1. Continue local simulator/voice on existing computer; no new AI computer or cloud account.
+2. Inventory and rigidly secure borrowed arm; bench-test on its existing controller and matched supply.
+3. Assemble unloaded base; test stop/reconnect/power behavior before adding load.
+4. Use one manually loaded banana cradle and supervised manual driving. Stow before travel; park before arm movement.
+5. Add body/eyes after rigid layout passes clearance/stability tests. See [hardware gates](docs/HARDWARE.md) and [roadmap](docs/ROADMAP.md).

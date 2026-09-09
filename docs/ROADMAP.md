@@ -2,7 +2,9 @@
 
 ## Week-one demo definition
 
-A small wheeled companion carries one manually loaded banana, offers it from a fixed body cradle, talks locally, and stops speaking when interrupted. Manual driving and recipient confirmation are acceptable. No table pickup, autonomous person following, face identification, or LinkedIn integration is required for the competition demo.
+A wheeled companion carries one manually loaded banana, retrieves/presents it from a fixed body cradle with a borrowed 12V SO-101 mounted on its LeKiwi base, talks using the existing offboard computer over Wi-Fi, and stops speaking when interrupted. A Pi handles robot-local I/O. Manual driving and recipient confirmation are acceptable. A one-foot plush is the character shell, not a validated overall robot size. No table pickup, autonomous person following, face identification, or LinkedIn integration is required for the competition demo.
+
+September 6: 12V arm confirmed by user; first batch in [ORDERING.md](../ORDERING.md). Physical adapter, authenticated robot transport and Pi audio/eye clients are still unimplemented. The schedule is relative to build start and hardware availability, not a delivery promise.
 
 | Time | Deliverable | Acceptance gate |
 | --- | --- | --- |
@@ -15,6 +17,10 @@ A small wheeled companion carries one manually loaded banana, offers it from a f
 | Day 7 | Rehearsal and reliability pass | 20 supervised banana cycles without jam, drop, brownout or tip; stop and recovery drills; offline voice demo with downloads cached |
 
 If mechanics slip, demonstrate the working local voice/face on a manually driven base with a fixed banana tray; present the arm as unfinished. Do not hide failures with scripted claims. Freeze new features before the final rehearsal.
+
+## Mobile integration sequence
+
+Bench arm on existing controller/supply → unloaded base with independent stop → measured arm/base/cradle layout → authenticated network transport and local disconnect behavior → robot audio/eye clients → loaded tests → plush. Travel only with arm stowed; park before arm movement. Evaluate support during torque-off rather than assuming cutting power holds the arm.
 
 ## Simulation improvements
 
