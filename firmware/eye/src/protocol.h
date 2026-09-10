@@ -1,6 +1,6 @@
 // JSON-lines protocol over USB CDC, matching bob/hardware/eyes.py and web/eyes-sim.
 //   state:  {"e":"happy","gx":0.3,"gy":-0.1,"blink":false,"p":1.0}   (<= 20 Hz, no reply)
-//   ping:   {"cmd":"ping"}              -> {"ok":1,"side":"L","fps":58,"fw":"0.1.0"}
+//   ping:   {"cmd":"ping"}              -> {"ok":1,"side":"L","fps":58,"fw":"0.2.0"}
 //   side:   {"cmd":"side","value":"L"}  -> {"ok":1,"side":"L"}   (persisted in NVS by main.cpp)
 //   bl:     {"cmd":"bl","value":800}    -> {"ok":1,"bl":800}     (backlight 0..1023)
 //   anything else                       -> {"err":"unknown"}; unparsable line -> {"err":"json"}
@@ -14,7 +14,7 @@
 
 #include "eye.h"
 
-#define EYE_FW_VERSION "0.1.0"
+#define EYE_FW_VERSION "0.2.0"
 
 class Protocol {
  public:

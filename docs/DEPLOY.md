@@ -47,6 +47,14 @@ ping -c 2 api.openai.com
 
 Ethernet and USB tethering usually need nothing beyond plugging in. You know it worked when: `ping` answers.
 
+Then make it stick forever (autoconnect, no power saving, a reconnect watchdog every minute):
+
+```sh
+bash scripts/wifi_forever.sh              # while connected to the venue Wi-Fi
+```
+
+After that the Jetson only needs power. Get its IP with `hostname -I` and SSH to it from your Mac instead of using the monitor.
+
 ## 3. Code and setup
 
 With network:
@@ -114,14 +122,14 @@ You know it worked when: you hear yourself, and speech into the mic while the sp
 
 ## 7. Eyes (from the Mac)
 
-Plug one eye board into the Mac. It shows up as `/dev/cu.usbmodem*`.
+The eyes are Waveshare ESP32-S3-Touch-LCD-2.1 boards (round 2.1", 480x480). Slide the board's power switch to **ON**, then plug it into the Mac using the USB-C port labelled **USB** (not the one labelled UART). It shows up as `/dev/cu.usbmodem*`.
 
 ```sh
 bash scripts/flash_eyes.sh /dev/cu.usbmodemXXXX L     # left eye = green iris
 bash scripts/flash_eyes.sh /dev/cu.usbmodemYYYY R     # right eye = brown iris
 ```
 
-If the board does not enumerate: hold BOOT, plug in, release, retry. Then plug both eyes into the Jetson hub; the doctor's eye rows should show `ping ok side=L/R`. If the screen stays black: backlight (`{"cmd":"bl","value":900}` over serial) or the alternate panel init table (see `firmware/eye/README.md`).
+If the board does not enumerate: hold BOOT, press and release RESET, release BOOT, retry. If the USB port still does not show up, flash through the other USB-C port (**UART**, a CH343 bridge, `/dev/cu.wchusbserial*`) with esptool as described in `firmware/eye/README.md`, then move the cable back to the USB port to set the side. Then plug both eyes into the Jetson hub (USB port, switch ON); the doctor's eye rows should show `ping ok side=L/R`. If the screen stays black: backlight (`{"cmd":"bl","value":900}` over serial) or the panel-init troubleshooting list in `firmware/eye/README.md`.
 
 You know it worked when: both eyes blink on their own and the doctor pings both.
 
