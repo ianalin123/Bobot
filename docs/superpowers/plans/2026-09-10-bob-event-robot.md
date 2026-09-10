@@ -52,10 +52,10 @@
 
 **Produces:** `Settings` (frozen dataclass) with fields: `mode: str` (`sim|cloud|local`), `hardware: str` (`sim|real`), `openai_api_key`, `elevenlabs_api_key`, `llm_model="gpt-4.1-mini"`, `stt_model="gpt-4o-mini-transcribe"`, `tts_model="gpt-4o-mini-tts"`, `tts_voice="ash"`, `pitch_semitones=5.0`, `servo_port="/dev/ttyACM0"`, `eye_ports=("/dev/ttyACM1","/dev/ttyACM2")` (comma env), `camera_index=-1` (auto), `face_threshold=0.363`, `console_token=""`, `local_fallback=False`, `doa_enabled=True`. `Settings.from_env(environ=os.environ) -> Settings`. Validation: `mode=cloud` without `openai_api_key` raises `ValueError`.
 
-- [ ] Add `[dependency-groups] robot = ["openai>=1.50,<3", "elevenlabs>=1.50,<3", "opencv-python>=4.10,<5", "sounddevice>=0.5,<1", "pyusb>=1.2,<2", "feetech-servo-sdk>=1.0,<2", "pyserial>=3.5,<4", "librosa>=0.10,<1", "soundfile>=0.12,<1"]` and keep `dev`. Run `uv lock` (do not `uv sync` the robot group on Mac unless needed; `uv sync --group robot` is what the Jetson does).
-- [ ] Tests: from_env defaults, comma-split eye ports, cloud mode requires key, `BOB_HARDWARE=real` maps to `hardware="real"`.
-- [ ] Update `.env.example` with all new variables and comments (no values).
-- [ ] Commit `feat: settings from env and robot dependency group`.
+- [x] Add `[dependency-groups] robot = ["openai>=1.50,<3", "elevenlabs>=1.50,<3", "opencv-python>=4.10,<5", "sounddevice>=0.5,<1", "pyusb>=1.2,<2", "feetech-servo-sdk>=1.0,<2", "pyserial>=3.5,<4", "librosa>=0.10,<1", "soundfile>=0.12,<1"]` and keep `dev`. Run `uv lock` (do not `uv sync` the robot group on Mac unless needed; `uv sync --group robot` is what the Jetson does).
+- [x] Tests: from_env defaults, comma-split eye ports, cloud mode requires key, `BOB_HARDWARE=real` maps to `hardware="real"`.
+- [x] Update `.env.example` with all new variables and comments (no values).
+- [x] Commit `feat: settings from env and robot dependency group`.
 
 ### Task 2: Persona and greetings
 
