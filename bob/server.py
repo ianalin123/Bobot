@@ -11,6 +11,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from .hardware.eyes import EyeState
 from .providers import MAX_AUDIO_BYTES, LocalLLM, LocalSTT, LocalTTS
 from .robot import Robot, SimHardware
 from .voice import VoiceSession
@@ -28,6 +29,9 @@ readiness = {
     "tts": {"ready": tts.ready(), "engine": tts.kind},
 }
 connected = False
+# Latest eye state, in wire form. The websocket ticker broadcasts it as an ``eyes`` event when
+# it changes (same pattern as robot_state); the Director will own it in a later task.
+eye_state: dict = EyeState().to_dict()
 
 
 @asynccontextmanager
@@ -78,6 +82,20 @@ async def asset(filename: str):
     return FileResponse(ROOT / "web" / filename, headers={"Cache-Control": "no-store"})
 
 
+@app.get("/eyes")
+async def eyes_page():
+    return FileResponse(ROOT / "web" / "eyes-sim" / "index.html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/assets/eyes-sim/{filename}")
+async def eyes_asset(filename: str):
+    if filename not in {"eyes.mjs", "expressions.mjs"}:
+        from fastapi import HTTPException
+
+        raise HTTPException(404)
+    return FileResponse(ROOT / "web" / "eyes-sim" / filename, headers={"Cache-Control": "no-store"})
+
+
 @app.websocket("/ws")
 async def websocket(ws: WebSocket):
     global connected
@@ -106,11 +124,16 @@ async def websocket(ws: WebSocket):
 
     async def updates():
         last = None
+        last_eyes = None
         while True:
             state = robot.snapshot()
             if state != last:
                 await send({"type": "robot_state", "state": state})
                 last = state
+            eyes = dict(eye_state)
+            if eyes != last_eyes:
+                await send({"type": "eyes", "state": eyes})
+                last_eyes = eyes
             await asyncio.sleep(0.05)
 
     ticker = asyncio.create_task(updates())
@@ -152,6 +175,10 @@ async def websocket(ws: WebSocket):
                 elif kind == "expression":
                     if data.get("expression") in {"curious", "happy", "sleepy"}:
                         robot.state.expression = data["expression"]
+                elif kind == "eyes":
+                    # Sim/demo hook: the eyes page pushes a state and the ticker echoes it back.
+                    base = EyeState.from_dict(eye_state)
+                    eye_state.update(EyeState.from_dict(data, base=base).to_dict())
                 else:
                     raise ValueError("Unknown message type")
             except (ValueError, TypeError, AttributeError) as exc:
