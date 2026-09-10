@@ -174,8 +174,8 @@ class Base:
 
 **Produces:** `class DoAReader: __init__(dev=None)`; `find()` uses `usb.core.find(idVendor=0x2886, idProduct=0x001A)`; `read() -> tuple[int, bool]` performs `dev.ctrl_transfer(0xC0, 0, 0x80|18, 20, 5, 100000)` and parses with `parse_doa(resp: bytes) -> (angle, speech)` that handles both layouts: if `len(resp)>=5` try `struct.unpack('<BHH', resp[:5])` giving `(status, angle, flag)`; if angle > 359 fall back to `(resp[1], bool(resp[3]))`. `class FakeDoA` with settable `(angle, speech)`. `set_led_effect(dev, n)` and `set_led_color(dev, rgb)` via the same vendor control path (leave command ids as constants with a comment to verify against `xvf_host --list-commands`). udev rule: `SUBSYSTEM=="usb", ATTR{idVendor}=="2886", ATTR{idProduct}=="001a", MODE="0666"` plus `KERNEL=="ttyACM*", MODE="0666"`. `doa_calibrate.py` prints angle/speech at 5 Hz for 30 s.
 
-- [ ] Tests: `parse_doa` on both byte layouts; `DoAReader.read` with a fake device object; `FakeDoA`.
-- [ ] Commit `feat: ReSpeaker XVF3800 direction-of-arrival reader`.
+- [x] Tests: `parse_doa` on both byte layouts; `DoAReader.read` with a fake device object; `FakeDoA`.
+- [x] Commit `feat: ReSpeaker XVF3800 direction-of-arrival reader`.
 
 ### Task 10: Eyes link and expression table
 
