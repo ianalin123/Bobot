@@ -1,5 +1,7 @@
 import random
 
+import pytest
+
 from bob import persona
 
 TOOL_NAMES = ("offer_banana", "stop_motion", "look_at_speaker", "set_expression")
@@ -116,3 +118,29 @@ def test_spoken_names_for_the_team():
     assert persona.spoken_name("Sissi") == "See-see"
     assert persona.spoken_name("Haseab") == "Ha-seeb"
     assert persona.spoken_name("Stranger") == "Stranger"
+
+
+def test_minionese_levels_have_instructions_and_replies():
+    assert set(persona.LEVELS) == {"mixed", "full", "english"}
+    for level in persona.LEVELS:
+        instruction = persona.minionese_instruction(level)
+        assert instruction and "\n" not in instruction.strip("\n")[:1]
+        reply = persona.LEVEL_REPLIES[level]
+        assert reply and len(reply) <= 90 and "tatata" not in reply.lower()
+    assert persona.minionese_instruction("full") != persona.minionese_instruction("mixed")
+    with pytest.raises(ValueError):
+        persona.minionese_instruction("klingon")
+
+
+def test_lexicon_is_big_enough_to_speak_minionese():
+    assert len(persona.MINIONESE) >= 40
+    assert all(k == k.lower() and v for k, v in persona.MINIONESE.items())
+
+
+def test_system_prompt_carries_the_minionese_guide():
+    assert persona.MINIONESE_GUIDE in persona.SYSTEM_PROMPT
+    guide = persona.MINIONESE_GUIDE.lower()
+    # The guide teaches the words and shows what a fully Minionese line looks like.
+    assert sum(word in guide for word in persona.MINIONESE) >= 20
+    assert "example" in guide
+    assert "never" in guide  # the insult is named only to forbid it

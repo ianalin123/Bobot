@@ -3,7 +3,10 @@
 // from the select box / mouse / keys; when the server pushes `eyes` events they take over.
 import {EXPRESSIONS, EXPRESSION_NAMES} from './expressions.mjs';
 
-const SIZE = 360, CENTER = 180, SCLERA_R = 150, IRIS_R = 62, PUPIL_R = 28, GAZE_PX = 60, SACCADE_PX = 6;
+// Bob's goggle: a silver rim (GOGGLE_R) around the eye (SCLERA_R); Minion-yellow skin for the lids.
+const SIZE = 360, CENTER = 180, GOGGLE_R = 176, SCLERA_R = 124, IRIS_R = 52, PUPIL_R = 23, GAZE_PX = 48, SACCADE_PX = 5;
+const SKIN = {lid: '#F5C21C', crease: '#B8850F'};
+const RIM = {light: '#f6f6f6', mid: '#c3c3c3', shade: '#8a8a8a', dark: '#4b4b4b', edge: '#2a2a2a'};
 const SMOOTH = 0.25, BLINK_CLOSE_MS = 120, BLINK_OPEN_MS = 100, LIVE_HOLD_MS = 2000, SEND_INTERVAL_MS = 50;
 const IRIS = {
   left:  {base: '#3F8F3A', light: '#62B35A', ring: '#245A22'},
@@ -59,6 +62,7 @@ export class Eye {
     const {ctx, cur} = this;
     ctx.clearRect(0, 0, SIZE, SIZE);
     ctx.save(); ctx.translate(CENTER, CENTER);
+    this.goggle(ctx);
     ctx.beginPath(); ctx.arc(0, 0, SCLERA_R, 0, Math.PI * 2); ctx.clip();
     const sclera = ctx.createRadialGradient(0, -20, 40, 0, 0, SCLERA_R);
     sclera.addColorStop(0, '#fffdf4'); sclera.addColorStop(0.8, '#f4f1e4'); sclera.addColorStop(1, '#cfcdbf');
@@ -86,18 +90,57 @@ export class Eye {
     ctx.beginPath(); ctx.arc(ir * 0.32, ir * 0.36, ir * 0.09, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 
+    // Lids are Minion skin sliding down inside the goggle, with a darker crease along the edge.
     const upper = Math.max(cur.upperLid, blink), lower = Math.max(cur.lowerLid, blink * 0.35);
     const sign = this.side === 'left' ? -1 : 1;
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = SKIN.lid; ctx.strokeStyle = SKIN.crease; ctx.lineWidth = 3;
     ctx.save(); ctx.rotate(sign * cur.tilt * Math.PI / 180);
-    const upperEdge = -SCLERA_R + upper * SCLERA_R * 2;
+    const upperEdge = -SCLERA_R + upper * SCLERA_R * 2, upperBow = upperEdge + 30 * (1 - blink);
     ctx.beginPath(); ctx.moveTo(-SIZE, -SIZE); ctx.lineTo(SIZE, -SIZE); ctx.lineTo(SIZE, upperEdge);
-    ctx.quadraticCurveTo(0, upperEdge + 36 * (1 - blink), -SIZE, upperEdge); ctx.closePath(); ctx.fill();
+    ctx.quadraticCurveTo(0, upperBow, -SIZE, upperEdge); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(SIZE, upperEdge); ctx.quadraticCurveTo(0, upperBow, -SIZE, upperEdge); ctx.stroke();
     ctx.restore();
-    const lowerEdge = SCLERA_R - lower * SCLERA_R * 2;
+    const lowerEdge = SCLERA_R - lower * SCLERA_R * 2, lowerBow = lowerEdge - 36 * lower;
     ctx.beginPath(); ctx.moveTo(-SIZE, SIZE); ctx.lineTo(SIZE, SIZE); ctx.lineTo(SIZE, lowerEdge);
-    ctx.quadraticCurveTo(0, lowerEdge - 44 * lower, -SIZE, lowerEdge); ctx.closePath(); ctx.fill();
+    ctx.quadraticCurveTo(0, lowerBow, -SIZE, lowerEdge); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(SIZE, lowerEdge); ctx.quadraticCurveTo(0, lowerBow, -SIZE, lowerEdge); ctx.stroke();
+
+    // Depth under the goggle lip, then a soft glass glare across the lens.
+    const lip = ctx.createRadialGradient(0, 0, SCLERA_R * 0.82, 0, 0, SCLERA_R);
+    lip.addColorStop(0, 'rgba(0,0,0,0)'); lip.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = lip; ctx.fillRect(-SCLERA_R, -SCLERA_R, SCLERA_R * 2, SCLERA_R * 2);
+    ctx.globalAlpha = 0.16; ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(-28, -72, 66, 22, -0.45, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
     ctx.restore();
+  }
+
+  goggle(ctx) {  // brushed silver rim with bevelled edges and four rivets, like Bob's goggles
+    const mid = (GOGGLE_R + SCLERA_R) / 2;
+    let metal;
+    if (ctx.createConicGradient) {
+      metal = ctx.createConicGradient(-0.7, 0, 0);
+      for (const [t, c] of [[0, RIM.light], [0.1, RIM.mid], [0.22, RIM.light], [0.38, RIM.shade], [0.5, RIM.mid], [0.62, RIM.light], [0.78, RIM.shade], [0.9, RIM.mid], [1, RIM.light]]) metal.addColorStop(t, c);
+    } else {
+      metal = ctx.createLinearGradient(-GOGGLE_R, -GOGGLE_R, GOGGLE_R, GOGGLE_R);
+      metal.addColorStop(0, RIM.light); metal.addColorStop(0.5, RIM.mid); metal.addColorStop(1, RIM.shade);
+    }
+    ctx.beginPath(); ctx.arc(0, 0, GOGGLE_R, 0, Math.PI * 2); ctx.arc(0, 0, SCLERA_R, 0, Math.PI * 2, true);
+    ctx.fillStyle = metal; ctx.fill();
+    ctx.lineWidth = 3; ctx.strokeStyle = RIM.edge;
+    ctx.beginPath(); ctx.arc(0, 0, GOGGLE_R - 1.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 4; ctx.strokeStyle = RIM.dark;
+    ctx.beginPath(); ctx.arc(0, 0, SCLERA_R + 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(0, 0, GOGGLE_R - 5, Math.PI * 1.05, Math.PI * 1.7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, SCLERA_R + 7, Math.PI * 0.1, Math.PI * 0.75); ctx.stroke();
+    for (const deg of [45, 135, 225, 315]) {
+      const a = deg * Math.PI / 180, x = Math.cos(a) * mid, y = Math.sin(a) * mid;
+      const rivet = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, 7);
+      rivet.addColorStop(0, RIM.light); rivet.addColorStop(0.7, RIM.shade); rivet.addColorStop(1, RIM.edge);
+      ctx.beginPath(); ctx.arc(x, y, 7, 0, Math.PI * 2); ctx.fillStyle = rivet; ctx.fill();
+      ctx.lineWidth = 1; ctx.strokeStyle = RIM.edge; ctx.stroke();
+    }
   }
 
   heart(ctx, r) {  // two circles + a triangle, mirroring the firmware

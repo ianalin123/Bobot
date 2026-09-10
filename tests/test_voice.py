@@ -179,3 +179,59 @@ def test_direct_action_sing():
     assert direct_action("sing the banana song") == "sing_song"
     assert direct_action("Sing me a song please") == "sing_song"
     assert direct_action("please sing") == "sing_song"
+
+
+class RecordingLLM:
+    def __init__(self):
+        self.calls = []
+
+    async def stream(self, messages, tools):
+        self.calls.append(messages)
+        yield {"content": "Bello!"}
+
+
+async def test_llm_gets_the_minion_persona_prompt_with_robot_state():
+    from bob import persona
+
+    llm = RecordingLLM()
+    voice, _ = session(llm=llm)
+    await voice.start(1, text="Hi Bob")
+    await voice.task
+    system = llm.calls[0][0]
+    assert system["role"] == "system"
+    assert system["content"].startswith(persona.SYSTEM_PROMPT)
+    assert persona.minionese_instruction("full") in system["content"]  # Bob speaks Minionese by default
+    assert "Robot state:" in system["content"]
+
+
+def test_exact_commands_switch_minionese_level():
+    assert direct_action("speak minionese") == "speak_minionese"
+    assert direct_action("Talk Minion, please!") == "speak_minionese"
+    assert direct_action("only minionese") == "speak_minionese"
+    assert direct_action("speak english") == "speak_english"
+    assert direct_action("please speak English") == "speak_english"
+    assert direct_action("do you speak minionese") is None
+    assert direct_action("minionese is cute") is None
+
+
+async def test_speak_minionese_switches_level_without_the_llm_and_changes_the_prompt():
+    from bob import persona
+
+    llm = RecordingLLM()
+    voice, events = session(llm=llm)
+    assert voice.minionese == "full"
+    await voice.start(1, text="speak english")
+    await voice.task
+    assert voice.minionese == "english"
+    assert [e for e in events if e["type"] == "minionese"][-1]["level"] == "english"
+    audio = [e for e in events if e["type"] == "audio"]
+    assert audio and audio[0]["text"] == persona.LEVEL_REPLIES["english"]
+    assert not llm.calls
+    await voice.start(2, text="how are you")
+    await voice.task
+    assert persona.minionese_instruction("english") in llm.calls[0][0]["content"]
+    await voice.start(3, text="speak minionese")
+    await voice.task
+    assert voice.minionese == "full"
+    assert [e for e in events if e["type"] == "minionese"][-1]["level"] == "full"
+    assert [e for e in events if e["type"] == "audio"][-1]["text"] == persona.LEVEL_REPLIES["full"]
