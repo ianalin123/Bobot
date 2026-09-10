@@ -252,8 +252,8 @@ upload_speed = 921600
 - New server events: `person` `{name, cx, cy, size, emotion}`, `doa` `{angle, speech}`, `eyes` (EyeState JSON), `console` `{armed, estop}`.
 - `scripts/doctor.py`: prints a table: OpenAI reachable, ElevenLabs quota, audio device found (lists `sounddevice.query_devices()`), XVF3800 USB control, servo port + scan result, eye ports ping, camera frame, models present, phrase cache count; exit code non-zero if any P0 item fails.
 
-- [ ] Tests: sim mode health includes `eyes`/`doa` keys; console token rejection; `console` armed timeout disarms; `drive` ignored when not armed; existing `tests/test_server.py` still passes.
-- [ ] Commit `feat: real-hardware server wiring, phone console and doctor`.
+- [x] Tests: sim mode health includes `eyes`/`doa` keys; console token rejection; `console` armed timeout disarms; `drive` ignored when not armed; existing `tests/test_server.py` still passes.
+- [x] Commit `feat: real-hardware server wiring, phone console and doctor`.
 
 ### Task 15: Jetson setup, bundle, deploy runbook
 

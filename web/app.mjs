@@ -2,7 +2,7 @@ import {AudioEngine} from './audio.mjs';
 const $ = id => document.getElementById(id);
 let ws, requestId = 0, online = false, voice = 'idle', state = {}, assistantLine = null;
 let generated = false, micBusy = false;
-const metrics = {};
+const metrics = {}, scene = {person: null, doa: null};
 const error = value => { $('error').textContent = value instanceof Error ? value.message : String(value); };
 const send = data => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); };
 function setVoice(value) {
@@ -36,6 +36,11 @@ function line(role, text = '') {
   return p;
 }
 function scroll() { $('transcript').scrollTop = $('transcript').scrollHeight; }
+function renderScene() {
+  const p = scene.person, d = scene.doa;
+  const who = p ? `${p.name || 'stranger'} at x ${p.cx.toFixed(2)}, size ${p.size.toFixed(2)}${p.emotion ? ` · ${p.emotion}` : ''}` : 'nobody';
+  $('scene').textContent = `Scene: ${who} · voice ${d ? `${d.angle}°${d.speech ? ' speaking' : ''}` : '—'}`;
+}
 function render() {
   const phase = state.phase || 'idle';
   $('robot').className = ['robot', state.expression || 'curious', phase, voice,
@@ -52,7 +57,8 @@ function render() {
   $('events').replaceChildren(...(state.events || []).map(text => { const li = document.createElement('li'); li.textContent = text; return li; }));
 }
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  const token = new URLSearchParams(location.search).get('token');
+  ws = new WebSocket(`ws://${location.host}/ws${token ? `?token=${encodeURIComponent(token)}` : ''}`);
   ws.onopen = () => { online = true; $('connection').textContent = 'Local runtime connected'; $('connection').classList.add('online'); render(); };
   ws.onclose = () => {
     online = false; audio.cancel(); audio.disableMic(); $('mic').textContent = 'Enable microphone';
@@ -73,6 +79,8 @@ function connect() {
       case 'metric': metrics[message.name] = message.value; $('metrics').textContent = Object.entries(metrics).map(([k, v]) => `${k.replaceAll('_', ' ')}: ${v} ms`).join(' · '); break;
       case 'error': error(message.message); interrupt(); break;
       case 'action_result': if (!message.result.accepted) error(message.result.reason); break;
+      case 'person': scene.person = message.person; renderScene(); break;
+      case 'doa': scene.doa = message; renderScene(); break;
     }
   };
 }

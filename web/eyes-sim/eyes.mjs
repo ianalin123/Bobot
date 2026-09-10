@@ -146,7 +146,7 @@ if (typeof document !== 'undefined') {
   });
 
   const connect = () => {
-    try { ws = new WebSocket(`ws://${location.host}/ws`); } catch { return; }
+    try { ws = new WebSocket(`ws://${location.host}/ws?role=viewer${new URLSearchParams(location.search).get("token") ? "&token=" + new URLSearchParams(location.search).get("token") : ""}`); } catch { return; }
     ws.onmessage = ({data}) => {
       let message; try { message = JSON.parse(data); } catch { return; }
       if (message.type !== 'eyes' || !message.state) return;

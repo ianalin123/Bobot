@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from bob import server
+from bob.config import Settings
 from bob.hardware.eyes import EXPRESSIONS, Eyes, EyeState, FakeEyes
 from bob.robot import Robot, SimHardware
 
@@ -150,12 +151,11 @@ def client(monkeypatch):
     async def ready():
         return {"ready": True, "model": "fake-local"}
 
-    monkeypatch.setattr(server.llm, "check", ready)
-    monkeypatch.setattr(server.stt, "load", lambda: None)
-    monkeypatch.setattr(server, "robot", Robot(SimHardware(0.001)))
-    monkeypatch.setattr(server, "connected", False)
-    monkeypatch.setattr(server, "eye_state", EyeState().to_dict())
-    with TestClient(server.app) as test_client:
+    app = server.build_app(Settings(), robot=Robot(SimHardware(0.001)))
+    runtime = app.state.runtime
+    monkeypatch.setattr(runtime.llm, "check", ready)
+    monkeypatch.setattr(runtime.stt, "load", lambda: None)
+    with TestClient(app) as test_client:
         yield test_client
 
 
@@ -175,11 +175,16 @@ def test_websocket_broadcasts_initial_eye_state_and_echoes_updates(client):
     with client.websocket_connect("/ws") as ws:
         while (message := ws.receive_json())["type"] != "eyes":
             pass
-        assert message["state"] == {"e": "neutral", "gx": 0.0, "gy": 0.0, "blink": False, "p": 1.0}
+        # The Director owns the eyes now (idle gaze wanders), so the first state is whatever it has.
+        assert list(message["state"]) == ["e", "gx", "gy", "blink", "p"]
+        assert message["state"]["e"] in EXPRESSIONS
         ws.send_json({"type": "eyes", "e": "love", "gx": 0.25, "gy": -0.5, "blink": True, "p": 1.3})
-        while (message := ws.receive_json())["type"] != "eyes":
-            pass
-        assert message["state"] == {"e": "love", "gx": 0.25, "gy": -0.5, "blink": True, "p": 1.3}
+        expected = {"e": "love", "gx": 0.25, "gy": -0.5, "blink": True, "p": 1.3}
+        for _ in range(50):  # skip Director states already in flight before the override landed
+            message = ws.receive_json()
+            if message["type"] == "eyes" and message["state"] == expected:
+                break
+        assert message["state"] == expected
         ws.send_json({"type": "eyes", "e": "furious"})
         while (message := ws.receive_json())["type"] != "error":
             pass
