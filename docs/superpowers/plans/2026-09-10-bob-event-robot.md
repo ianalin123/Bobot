@@ -80,10 +80,10 @@
 - `wav_from_pcm16(samples: np.ndarray, sr: int) -> bytes` helper.
 - `build_providers(settings) -> tuple[stt, llm, tts]` for mode `cloud` (OpenAI + optional local fallback when `settings.local_fallback`), `local` (existing `LocalSTT/LocalLLM/LocalTTS`).
 
-- [ ] Tests use a fake OpenAI client object (duck-typed: `audio.transcriptions.create`, `chat.completions.create` returning an async iterator of chunk objects with `.choices[0].delta.content` / `.tool_calls`, `audio.speech.with_streaming_response.create` context manager yielding PCM bytes). Assert: STT skips silence, LLM stream yields deltas then one tool_calls message with parsed JSON args, TTS output is a valid 16 kHz WAV (`providers.decode_wav` accepts it), pitch shift with 0 semitones is identity, Fallback uses secondary on exception.
-- [ ] Live smoke test `tests/test_live_cloud.py` skipped unless `BOB_LIVE=1`: one STT on a generated 1 s sine WAV (expects a string), one LLM turn ("say bello"), one TTS ("Bello!") saved to `artifacts/bello.wav`.
-- [ ] Run the live smoke once on the Mac (`BOB_LIVE=1 uv run --group robot pytest tests/test_live_cloud.py -q`) and record results in the commit message.
-- [ ] Commit `feat: OpenAI/ElevenLabs providers with local fallback`.
+- [x] Tests use a fake OpenAI client object (duck-typed: `audio.transcriptions.create`, `chat.completions.create` returning an async iterator of chunk objects with `.choices[0].delta.content` / `.tool_calls`, `audio.speech.with_streaming_response.create` context manager yielding PCM bytes). Assert: STT skips silence, LLM stream yields deltas then one tool_calls message with parsed JSON args, TTS output is a valid 16 kHz WAV (`providers.decode_wav` accepts it), pitch shift with 0 semitones is identity, Fallback uses secondary on exception.
+- [x] Live smoke test `tests/test_live_cloud.py` skipped unless `BOB_LIVE=1`: one STT on a generated 1 s sine WAV (expects a string), one LLM turn ("say bello"), one TTS ("Bello!") saved to `artifacts/bello.wav`.
+- [x] Run the live smoke once on the Mac (`BOB_LIVE=1 uv run --group robot pytest tests/test_live_cloud.py -q`) and record results in the commit message.
+- [x] Commit `feat: OpenAI/ElevenLabs providers with local fallback`.
 
 ### Task 4: Stock phrase cache
 
@@ -133,8 +133,8 @@ class FakeBus:  # same API; dict-of-dicts registers; goal position becomes prese
 ```
 Signed values are decoded/encoded automatically for the registers listed in `SIGN_BITS`. Bus access is guarded by a `threading.Lock`.
 
-- [ ] Tests: sign-magnitude round trips (incl. -0 handling), FakeBus read/write/sync_write/tick, `torque(off)` writes 0 then Lock 0, scan returns configured ids only. Real-hardware code path is exercised with a fake `scservo_sdk` module injected via `sys.modules` for `open()` (PortHandler.openPort/setBaudRate called).
-- [ ] Commit `feat: minimal Feetech STS3215 bus with fake`.
+- [x] Tests: sign-magnitude round trips (incl. -0 handling), FakeBus read/write/sync_write/tick, `torque(off)` writes 0 then Lock 0, scan returns configured ids only. Real-hardware code path is exercised with a fake `scservo_sdk` module injected via `sys.modules` for `open()` (PortHandler.openPort/setBaudRate called).
+- [x] Commit `feat: minimal Feetech STS3215 bus with fake`.
 
 ### Task 7: Arm adapter, discovery and teach scripts
 
@@ -187,8 +187,8 @@ class Base:
 - `class Eyes: __init__(ports: tuple[str,...], baud=115200)`; `open()` (pyserial, non-blocking, tolerant of missing ports → logs and marks `connected=False`); `set(state: EyeState)` writes one line to every port at ≤20 Hz (coalesce); `ping() -> dict[port, dict]`; `close()`. `class FakeEyes` records every `EyeState`.
 - Browser sim: page with two round canvases (left green iris, right brown iris), reads `EyeState` JSON from the `/ws` `eyes` event **or** a local demo mode with a dropdown of expressions and mouse-driven gaze. `expressions.mjs` exports the geometry table (lid openness, pupil shape, iris scale per expression) so firmware and sim stay in sync (the firmware copies these numbers; test enforces they exist for all 8 expressions).
 
-- [ ] Tests: `EyeState.to_json` exact string; `Eyes.set` rate-limits and writes to a fake serial; missing port doesn't raise; Node test: every expression has all geometry keys and values in range.
-- [ ] Commit `feat: eye link protocol and browser eye simulator`.
+- [x] Tests: `EyeState.to_json` exact string; `Eyes.set` rate-limits and writes to a fake serial; missing port doesn't raise; Node test: every expression has all geometry keys and values in range.
+- [x] Commit `feat: eye link protocol and browser eye simulator`.
 
 ### Task 11: Eye firmware (ESP32-S3-Touch-LCD-1.85)
 
@@ -229,8 +229,8 @@ upload_speed = 921600
 - `class FaceEngine: __init__(models_dir, threshold=0.363)`; `load()`; `enroll_dir(people_dir) -> dict[str, np.ndarray]` (mean-normalized embedding per person from 1–5 images; writes `people/embeddings.npz`); `load_embeddings(path)`; `detect(frame) -> list[Person]` (names by best cosine match ≥ threshold, else `None`).
 - `class Tracker: update(persons) -> list[Person]` with 5-frame majority vote per face slot (match by IoU > 0.3) and `seen_recently(name, window_s=600)` / `mark_seen(name)`.
 
-- [ ] Tests: `Person` normalization math; `Tracker` majority vote and cooldown with a fake clock; `FaceEngine.detect` on a blank image → empty (requires models; `pytest.importorskip("cv2")` and skip if models missing); network-gated test enrolls person A from photo 1 and recognizes photo 2 of A but not B.
-- [ ] Commit `feat: camera and YuNet/SFace face recognition with enrollment`.
+- [x] Tests: `Person` normalization math; `Tracker` majority vote and cooldown with a fake clock; `FaceEngine.detect` on a blank image → empty (requires models; `pytest.importorskip("cv2")` and skip if models missing); network-gated test enrolls person A from photo 1 and recognizes photo 2 of A but not B.
+- [x] Commit `feat: camera and YuNet/SFace face recognition with enrollment`.
 
 ### Task 13: Director
 
