@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from bob.hardware.eyes import EXPRESSIONS, EyeState
-from bob.persona import GREETINGS, STOCK_PHRASES, pick_greeting
+from bob.persona import GREETINGS, STOCK_PHRASES, pick_greeting, spoken_name
 from bob.vision.faces import Person
 
 # Rules from spec section 8.
@@ -332,7 +332,7 @@ class Director:
             return
         self._seen[name] = now
         self._touch(now)
-        await self.phrases.say(self._greeting(name))
+        await self.phrases.say(self._greeting(name).replace(name, spoken_name(name)))
 
     def _greeting(self, name: str) -> str:
         """A greeting that actually says the name: GREETINGS also holds nameless lines for strangers."""

@@ -14,7 +14,8 @@ node_modules/
 *.log
 bundle/
 assets/phrases/
-people/
+people/*
+!people/embeddings.npz
 config/poses.json
 config/calibration.json
 firmware/eye/.pio/

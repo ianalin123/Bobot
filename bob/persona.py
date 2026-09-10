@@ -180,6 +180,19 @@ STOCK_PHRASES = {
 }
 
 
+# How the TTS should pronounce enrolled names (folder name -> spoken form). Add friends here.
+SPOKEN_NAMES = {
+    "Iana": "Yee-ah-na",
+    "Sissi": "See-see",
+    "Haseab": "Ha-seeb",
+}
+
+
+def spoken_name(name):
+    """Pronounceable form of an enrolled name for speech; unknown names pass through."""
+    return SPOKEN_NAMES.get(name, name)
+
+
 def pick_greeting(name, rng=_random):
     """Return one random greeting with ``name`` substituted.
 

@@ -152,10 +152,19 @@ class FaceEngine:
 
     # -- enrollment -------------------------------------------------------
 
-    def _read_image(self, path: Path) -> np.ndarray | None:
+    def _read_image(self, path: Path, max_side: int = 800) -> np.ndarray | None:
+        """Read a photo, shrinking big ones: YuNet misses faces that fill a 12-megapixel frame,
+        and the live camera is 640 px wide anyway."""
         import cv2
 
-        return cv2.imread(str(path), cv2.IMREAD_COLOR)
+        image = cv2.imread(str(path), cv2.IMREAD_COLOR)
+        if image is None:
+            return None
+        h, w = image.shape[:2]
+        scale = max_side / max(h, w)
+        if scale < 1.0:
+            image = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+        return image
 
     def embed_file(self, path: Path) -> np.ndarray | None:
         """Embedding of the largest face in an image file, or None if no face is found."""

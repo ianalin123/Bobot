@@ -109,3 +109,10 @@ def test_song_is_original_and_cached_key():
     assert "song" in persona.STOCK_PHRASES
     assert persona.STOCK_PHRASES["song"] == persona.SONG_LYRICS
     assert "ba-na-na" in persona.SONG_LYRICS.lower()
+
+
+def test_spoken_names_for_the_team():
+    assert persona.spoken_name("Iana") == "Yee-ah-na"
+    assert persona.spoken_name("Sissi") == "See-see"
+    assert persona.spoken_name("Haseab") == "Ha-seeb"
+    assert persona.spoken_name("Stranger") == "Stranger"
