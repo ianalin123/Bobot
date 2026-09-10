@@ -1,10 +1,13 @@
-// Procedural eye renderer for the 360x360 round LCD. Geometry, colours and the expression
-// table mirror web/eyes-sim/eyes.mjs + expressions.mjs so the LCD matches the browser twin.
+// Procedural eye renderer for the 480x480 round LCD. Geometry, colours and the expression
+// table mirror web/eyes-sim/eyes.mjs + expressions.mjs (which are 360x360; every pixel value
+// here is the sim's value scaled by 480/360) so the LCD matches the browser twin.
 #pragma once
 
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
 #include <esp_heap_caps.h>
+
+constexpr int16_t EYE_SIZE = 480;
 
 enum class PupilShape : uint8_t { Round, Heart };
 
@@ -12,8 +15,8 @@ struct Expression {
   const char *name;
   float upperLid;      // fraction of the eye height covered by the upper lid (0 open .. 1 closed)
   float lowerLid;      // same for the lower lid
-  float irisScale;     // multiplier on IRIS_R (62 px)
-  float pupilScale;    // multiplier on PUPIL_R (28 px)
+  float irisScale;     // multiplier on IRIS_R (83 px; 62 in the sim)
+  float pupilScale;    // multiplier on PUPIL_R (37 px; 28 in the sim)
   PupilShape pupilShape;
   float tilt;          // upper-lid rotation in degrees, mirrored per eye (+ = inner corner up = sad)
   float lidAsym;       // extra upper-lid opening on the RIGHT eye only ("curious")
@@ -23,7 +26,7 @@ struct Expression {
 // Returns nullptr for an unknown name.
 const Expression *findExpression(const char *name);
 
-// Arduino_Canvas whose 16-bit framebuffer (360*360*2 = 259 200 bytes) lives in PSRAM.
+// Arduino_Canvas whose 16-bit framebuffer (480*480*2 = 460 800 bytes) lives in PSRAM.
 class PsramCanvas : public Arduino_Canvas {
  public:
   using Arduino_Canvas::Arduino_Canvas;

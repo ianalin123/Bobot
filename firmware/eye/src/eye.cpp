@@ -7,8 +7,9 @@
 
 namespace {
 
-constexpr int16_t SIZE = 360, CENTER = 180, SCLERA_R = 150, IRIS_R = 62, PUPIL_R = 28;
-constexpr float GAZE_PX = 60.f, SACCADE_PX = 6.f, SMOOTH = 0.25f;
+// Sim geometry (360 px canvas: sclera 150, iris 62, pupil 28, gaze 60, saccade 6) scaled by 480/360.
+constexpr int16_t SIZE = EYE_SIZE, CENTER = SIZE / 2, SCLERA_R = 200, IRIS_R = 83, PUPIL_R = 37;
+constexpr float GAZE_PX = 80.f, SACCADE_PX = 8.f, SMOOTH = 0.25f;
 constexpr uint32_t BLINK_CLOSE_MS = 120, BLINK_OPEN_MS = 100;
 
 // ---- Expression table: COPIED from web/eyes-sim/expressions.mjs. Edit there first, then here. ----
@@ -130,12 +131,13 @@ void Eye::draw(float blink) {
   Arduino_GFX *g = canvas_;
   const Params &cur = cur_;
 
-  // Sclera: the sim's radial gradient (centre offset -20 px) approximated by concentric discs.
-  // Everything outside r=150 is blacked out in applyLidsAndClip(), so no fillScreen is needed.
+  // Sclera: the sim's radial gradient (centre offset -20 px sim = -27 px here) approximated by
+  // concentric discs (sim radii 132/100/48 at offsets -4/-12/-20, scaled by 4/3).
+  // Everything outside SCLERA_R is blacked out in applyLidsAndClip(), so no fillScreen is needed.
   g->fillCircle(CENTER, CENTER, SCLERA_R, rgb565(SCLERA_EDGE));
-  g->fillCircle(CENTER, CENTER - 4, 132, rgb565(mix(SCLERA_MID, SCLERA_EDGE, 0.35f)));
-  g->fillCircle(CENTER, CENTER - 12, 100, rgb565(SCLERA_MID));
-  g->fillCircle(CENTER, CENTER - 20, 48, rgb565(SCLERA_CENTER));
+  g->fillCircle(CENTER, CENTER - 5, 176, rgb565(mix(SCLERA_MID, SCLERA_EDGE, 0.35f)));
+  g->fillCircle(CENTER, CENTER - 16, 133, rgb565(SCLERA_MID));
+  g->fillCircle(CENTER, CENTER - 27, 64, rgb565(SCLERA_CENTER));
 
   // Iris: gaze offset + saccade; radial gradient light -> base -> ring as concentric discs.
   const IrisColours &col = side_ == 'R' ? IRIS_RIGHT : IRIS_LEFT;
@@ -185,10 +187,11 @@ void Eye::drawHeart(int16_t cx, int16_t cy, float r, uint16_t colour) {
 }
 
 // Eyelids + sclera clip, written straight into the framebuffer one scanline at a time.
-// Upper lid (sim): in a frame rotated by sign*tilt, the region above the parabola
+// Upper lid (sim, 360 px): in a frame rotated by sign*tilt, the region above the parabola
 //   y = upperEdge + 18*(1-blink) * (1 - (x/360)^2)   (quadratic curve, control point +36*(1-blink))
 // Lower lid: unrotated, region below  y = lowerEdge - 22*lower * (1 - (x/360)^2).
-// Pixels outside the r=150 sclera disc are black (the sim clips to that circle).
+// Here the sags are 24 / 29 px (18 / 22 scaled by 4/3) and the parabola spans SIZE.
+// Pixels outside the SCLERA_R disc are black (the sim clips to that circle).
 void Eye::applyLidsAndClip(float blink) {
   uint16_t *fb = canvas_->getFramebuffer();
   if (!fb) return;
@@ -197,8 +200,8 @@ void Eye::applyLidsAndClip(float blink) {
   float sign = side_ == 'L' ? -1.f : 1.f;
   float theta = sign * cur.tilt * static_cast<float>(M_PI) / 180.f;
   float c = cosf(theta), s = sinf(theta);
-  float upperEdge = -SCLERA_R + upper * SCLERA_R * 2.f, upperSag = 18.f * (1.f - blink);
-  float lowerEdge = SCLERA_R - lower * SCLERA_R * 2.f, lowerSag = 22.f * lower;
+  float upperEdge = -SCLERA_R + upper * SCLERA_R * 2.f, upperSag = 24.f * (1.f - blink);
+  float lowerEdge = SCLERA_R - lower * SCLERA_R * 2.f, lowerSag = 29.f * lower;
   constexpr float INV = 1.f / (static_cast<float>(SIZE) * SIZE);
   const size_t rowBytes = static_cast<size_t>(SIZE) * 2;
 
