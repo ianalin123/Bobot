@@ -160,6 +160,7 @@ async def test_llm_stream_yields_deltas_then_parsed_tool_calls():
         "stop_motion",
         "look_at_speaker",
         "set_expression",
+        "sing_song",
     }
 
 
@@ -427,7 +428,7 @@ class DirectorToolLLM:
 
 def test_tools_include_director_tools_with_schema():
     by_name = {t["function"]["name"] for t in voice.TOOLS}
-    assert by_name == {"offer_banana", "stop_motion", "look_at_speaker", "set_expression"}
+    assert by_name == {"offer_banana", "stop_motion", "look_at_speaker", "set_expression", "sing_song"}
     spec = next(t["function"] for t in voice.TOOLS if t["function"]["name"] == "set_expression")
     assert spec["parameters"]["required"] == ["expression"]
     assert spec["parameters"]["properties"]["expression"]["enum"] == [

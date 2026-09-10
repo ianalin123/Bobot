@@ -157,6 +157,14 @@ GREETINGS = [
     "Bello! Me Bob. Me want banana. Me want friend. Bello!",
 ]
 
+# Bob's own banana chant (original words; the film songs are copyrighted and are not reproduced here).
+# A real track can be dropped into assets/songs/ with scripts/add_song.py and Bob will play that instead.
+SONG_LYRICS = (
+    "Ba-na-na, ba-na-na! Bello bello ba-na-na! "
+    "Papoy papoy, me want ba-na-na! Tank yu tank yu, ba-na-naaa! "
+    "Hehehe! Bee-do bee-do, ba-na-na para tu!"
+)
+
 STOCK_PHRASES = {
     "bello": "Bello!",
     "banana": "Bananaaa! Hehehe!",
@@ -168,6 +176,7 @@ STOCK_PHRASES = {
     "para_tu": "Banana para tu! For you!",
     "whoa": "Whoa! Whoa whoa whoa!",
     "uh_oh": "Uh oh. Bob did a whoopsie.",
+    "song": SONG_LYRICS,
 }
 
 

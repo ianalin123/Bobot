@@ -172,6 +172,14 @@ class CachedPhrasePlayer(PhrasePlayer):
     """PhrasePlayer that also finds the ``phrase_<key>.wav`` names written by scripts/render_phrases.py."""
 
     async def say(self, text_or_key: str) -> str:
+        if text_or_key == "song" and self._play is not None:
+            # A real track added with scripts/add_song.py beats the synthesized chant.
+            songs = sorted((self.phrases_dir.parent / "songs").glob("*.wav"))
+            if songs:
+                result = self._play(songs[0])
+                if asyncio.iscoroutine(result):
+                    await result
+                return songs[0].name
         if text_or_key in STOCK_PHRASES and self._play is not None:
             for name in (f"{text_or_key}.wav", f"phrase_{text_or_key}.wav"):
                 path = self.phrases_dir / name

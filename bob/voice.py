@@ -4,9 +4,11 @@ import json
 import re
 import time
 
+from .persona import SONG_LYRICS
+
 EXPRESSIONS = ["neutral", "curious", "happy", "love", "sleepy", "surprised", "sad", "angry_playful"]
 ROBOT_TOOLS = {"offer_banana", "stop_motion"}
-DIRECTOR_TOOLS = {"look_at_speaker", "set_expression"}
+DIRECTOR_TOOLS = {"look_at_speaker", "set_expression", "sing_song"}
 
 TOOLS = [
     {
@@ -24,6 +26,7 @@ TOOLS = [
         ),
         ("stop_motion", "Stop robot movement when the user asks to stop."),
         ("look_at_speaker", "Turn your eyes and head toward whoever is talking to you."),
+        ("sing_song", "Sing Bob's banana song when someone asks you to sing."),
     ]
 ] + [
     {
@@ -66,6 +69,20 @@ def direct_action(text):
         normalized = normalized[:-7]
     if normalized in {"stop", "stop moving", "stop motion", "stop the robot"}:
         return "stop_motion"
+    if normalized in {
+        "sing",
+        "sing a song",
+        "sing me a song",
+        "sing us a song",
+        "sing the banana song",
+        "sing banana song",
+        "sing the song",
+        "banana song",
+        "bob sing",
+        "can you sing",
+        "sing something",
+    }:
+        return "sing_song"
     if normalized in {
         "banana",
         "give me a banana",
@@ -115,7 +132,7 @@ class VoiceSession:
             arguments = {}
         if not isinstance(arguments, dict):
             return {"accepted": False, "reason": "Tool arguments must be an object."}
-        if name == "look_at_speaker":
+        if name in {"look_at_speaker", "sing_song"}:
             if arguments:
                 return {"accepted": False, "reason": "This tool accepts no arguments."}
         elif set(arguments) != {"expression"} or arguments["expression"] not in EXPRESSIONS:
@@ -172,10 +189,23 @@ class VoiceSession:
             # Essential commands must not depend on a small LLM deciding to call a tool.
             # Full-string matches avoid acting on "don't give me a banana" or quoted prose.
             if action := direct_action(text):
-                result = await self.robot.command(action)
-                await self.emit("tool_result", name=action, result=result, source="exact_command")
+                if action == "sing_song":
+                    # The director plays a real track or the cached chant; without one Bob sings the words.
+                    result = await self.director_tool(action, {})
+                    await self.emit("tool_result", name=action, result=result, source="exact_command")
+                    if result.get("accepted") and result.get("played"):
+                        self.generation_done = True
+                        await self.emit("turn_done")
+                        return
+                    result = {"accepted": True}
+                    reply = SONG_LYRICS
+                else:
+                    result = await self.robot.command(action)
+                    await self.emit("tool_result", name=action, result=result, source="exact_command")
                 if not result.get("accepted"):
                     reply = "I can't start that right now. Please check my robot status."
+                elif action == "sing_song":
+                    pass
                 elif action == "stop_motion":
                     reply = (
                         "Motion stopped."

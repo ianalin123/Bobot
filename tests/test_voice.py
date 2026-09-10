@@ -170,3 +170,12 @@ async def test_exact_command_works_even_when_model_is_unreliable():
     assert any(e["type"] == "tool_result" and e["source"] == "exact_command" for e in events)
     await voice.robot.task
     assert voice.robot.state.phase == "waiting"
+
+
+def test_direct_action_sing():
+    from bob.voice import direct_action
+
+    assert direct_action("Bob, sing the banana song!") is None  # not an exact phrase
+    assert direct_action("sing the banana song") == "sing_song"
+    assert direct_action("Sing me a song please") == "sing_song"
+    assert direct_action("please sing") == "sing_song"

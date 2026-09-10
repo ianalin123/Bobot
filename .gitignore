@@ -19,3 +19,4 @@ config/poses.json
 config/calibration.json
 firmware/eye/.pio/
 .claude/
+assets/songs/

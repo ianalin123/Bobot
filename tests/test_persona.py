@@ -4,7 +4,19 @@ from bob import persona
 
 TOOL_NAMES = ("offer_banana", "stop_motion", "look_at_speaker", "set_expression")
 EXPRESSIONS = ("neutral", "curious", "happy", "love", "sleepy", "surprised", "sad", "angry_playful")
-STOCK_KEYS = ("bello", "banana", "poopaye", "laugh", "yawn", "tank_yu", "bee_do", "para_tu", "whoa", "uh_oh")
+STOCK_KEYS = (
+    "bello",
+    "banana",
+    "poopaye",
+    "laugh",
+    "yawn",
+    "tank_yu",
+    "bee_do",
+    "para_tu",
+    "whoa",
+    "uh_oh",
+    "song",
+)
 
 
 def test_exactly_100_unique_greetings():
@@ -50,7 +62,7 @@ def test_stock_phrases_keys_and_shape():
     assert tuple(persona.STOCK_PHRASES) == STOCK_KEYS
     for key, line in persona.STOCK_PHRASES.items():
         assert isinstance(line, str) and line.strip() == line and line, key
-        assert len(line) <= 60, key
+        assert len(line) <= (200 if key == "song" else 60), key
         assert "{" not in line, key
 
 
@@ -91,3 +103,9 @@ def test_greetings_have_no_markdown_or_emoji():
     for greeting in persona.GREETINGS:
         assert all(ord(ch) < 0x2000 for ch in greeting), greeting
         assert "*" not in greeting and "_" not in greeting and "#" not in greeting, greeting
+
+
+def test_song_is_original_and_cached_key():
+    assert "song" in persona.STOCK_PHRASES
+    assert persona.STOCK_PHRASES["song"] == persona.SONG_LYRICS
+    assert "ba-na-na" in persona.SONG_LYRICS.lower()

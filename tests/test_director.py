@@ -462,3 +462,20 @@ async def test_recognized_greeting_always_names_the_person(seed):
     await run(director, clock, 1.5, persons=[person("Ana")])
     assert len(phrases.calls) == 1
     assert "Ana" in phrases.calls[0]
+
+
+async def test_sing_song_tool_plays_song_and_hearts(director_factory=None):
+    import random
+
+    from bob.config import Settings
+    from bob.director import Director, FakePhrasePlayer
+    from bob.hardware.eyes import FakeEyes
+    from bob.robot import Robot, SimHardware
+
+    phrases = FakePhrasePlayer()
+    director = Director(Robot(SimHardware(delay=0)), FakeEyes(), phrases, Settings(), rng=random.Random(0))
+    result = await director.on_tool("sing_song", {})
+    assert result["accepted"] is True
+    assert "song" in phrases.calls
+    await director.tick([], None)
+    assert director.eye_state.expression == "love"

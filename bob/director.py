@@ -25,6 +25,7 @@ from bob.vision.faces import Person
 GREET_STABLE_S = 1.0  # same recognized name this long before greeting
 SEEN_COOLDOWN_S = 600  # no re-greeting within this window
 LOVE_S = 3.0  # "banana" heard or said -> love this long
+SONG_S = 20.0  # heart eyes while Bob sings
 IDLE_SLEEPY_S = 60  # nothing happening this long -> sleepy
 GIFT_MIN_S = 240  # random banana gift window while engaged
 GIFT_MAX_S = 480
@@ -239,6 +240,10 @@ class Director:
                 return {"accepted": False, "reason": "expression must be one of: " + ", ".join(EXPRESSIONS)}
             self._override = (expression, now + TOOL_EXPRESSION_S)
             return {"accepted": True, "expression": expression}
+        if name == "sing_song":
+            self._override = ("love", now + SONG_S)
+            spoken = await self.phrases.say("song")
+            return {"accepted": True, "played": str(spoken).endswith(".wav"), "spoken": spoken}
         if name == "look_at_speaker":
             self._look_at_until = now + LOOK_AT_S
             bearing = None if self._last_bearing is None else round(self._last_bearing)
