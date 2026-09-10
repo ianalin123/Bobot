@@ -23,7 +23,7 @@ from bob.vision.faces import Person
 
 # Rules from spec section 8.
 GREET_STABLE_S = 1.0  # same recognized name this long before greeting
-SEEN_COOLDOWN_S = 600  # no re-greeting within this window
+SEEN_COOLDOWN_S = 45  # no re-greeting within this window (walk away and come back -> greeted again)
 LOVE_S = 3.0  # "banana" heard or said -> love this long
 SONG_S = 20.0  # heart eyes while Bob sings
 IDLE_SLEEPY_S = 60  # nothing happening this long -> sleepy
@@ -33,7 +33,8 @@ GIFT_KNOWN_FACTOR = 3  # recognized people get 3x the odds (interval / 3)
 TURN_DEADBAND_DEG = 20  # no turning toward voices inside +-this
 CLOSE_SIZE = 0.35  # bbox height / frame height that counts as "close"
 UNKNOWN_HELLO_S = 3.0  # unknown face stable this long -> maybe a hello
-UNKNOWN_HELLO_P = 0.2
+UNKNOWN_HELLO_P = 1.0  # always say Bello to a new face
+UNKNOWN_HELLO_COOLDOWN_S = 30  # but not more often than this
 
 # Motion (P1/P2). DoA angle convention is 0..359; DOA_SIGN flips left/right after the bench check.
 DOA_SIGN = 1
@@ -332,7 +333,10 @@ class Director:
             return
         self._seen[name] = now
         self._touch(now)
-        await self.phrases.say(self._greeting(name).replace(name, spoken_name(name)))
+        line = self._greeting(name).replace(name, spoken_name(name))
+        if not line.lower().startswith("bello"):
+            line = f"Bello, {spoken_name(name)}! " + line
+        await self.phrases.say(line)
 
     def _greeting(self, name: str) -> str:
         """A greeting that actually says the name: GREETINGS also holds nameless lines for strangers."""
@@ -355,7 +359,11 @@ class Director:
         if self._unknown_rolled or now - self._unknown_since < UNKNOWN_HELLO_S:
             return
         self._unknown_rolled = True
+        last = self._seen.get("__unknown__")
+        if last is not None and now - last < UNKNOWN_HELLO_COOLDOWN_S:
+            return
         if self.rng.random() < UNKNOWN_HELLO_P:
+            self._seen["__unknown__"] = now
             await self.phrases.say("bello")
 
     def _schedule_gift(self, target: Person | None, now: float) -> None:

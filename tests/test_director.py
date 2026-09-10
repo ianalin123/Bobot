@@ -164,10 +164,22 @@ async def test_unknown_face_hello_after_three_seconds_with_probability():
     assert phrases.calls == ["bello"]  # rolled once per visit
 
 
-async def test_unknown_face_hello_skipped_when_roll_fails():
-    director, clock, _, _, phrases, _, _ = make(rng=ScriptedRng(draws=[0.9]))
+async def test_unknown_face_hello_once_then_cooldown():
+    director, clock, _, _, phrases, _, _ = make()
     await run(director, clock, UNKNOWN_HELLO_S + 1, persons=[person(None)])
-    assert phrases.calls == []
+    assert phrases.calls == ["bello"]
+    # face leaves and a new stranger appears within the cooldown: no second Bello
+    await run(director, clock, 1.0, persons=[])
+    await run(director, clock, UNKNOWN_HELLO_S + 1, persons=[person(None)])
+    assert phrases.calls == ["bello"]
+
+
+async def test_recognized_greeting_starts_with_bello_and_spoken_name():
+    director, clock, _, _, phrases, _, _ = make()
+    await run(director, clock, GREET_STABLE_S + 0.2, persons=[person("Sissi")])
+    assert len(phrases.calls) == 1
+    line = phrases.calls[0]
+    assert line.lower().startswith("bello") and "See-see" in line and "Sissi" not in line
 
 
 # -- expressions ---------------------------------------------------------------
