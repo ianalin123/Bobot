@@ -26,6 +26,7 @@ GREET_STABLE_S = 1.0  # same recognized name this long before greeting
 SEEN_COOLDOWN_S = 45  # no re-greeting within this window (walk away and come back -> greeted again)
 LOVE_S = 3.0  # "banana" heard or said -> love this long
 SONG_S = 20.0  # heart eyes while Bob sings
+SONG_COOLDOWN_S = 30.0  # 'banana' in speech plays the song clip at most this often
 IDLE_SLEEPY_S = 60  # nothing happening this long -> sleepy
 GIFT_MIN_S = 240  # random banana gift window while engaged
 GIFT_MAX_S = 480
@@ -53,6 +54,19 @@ GAZE_Y_SCALE = 0.6
 YAWN_EVERY_S = 120.0
 SLEEPY_BLINK_PERIOD_S = 4.0
 SLEEPY_BLINK_S = 0.4
+
+# Liveliness. Everything here fits the e/gx/gy/blink/p wire protocol; the boards and the sim
+# smooth every parameter per frame, so 10 Hz updates read as continuous motion.
+ATTENTION_BLINK_S = 0.0  # blink right away when Bob hears speech or a transcript lands
+GREET_BLINKS = (0.0, 0.35)  # double blink when a known face is greeted (offsets in seconds)
+SURPRISE_S = 0.7  # someone talks over Bob (barge-in) -> surprised flash, then curious
+HEARTBEAT_BPM = 72.0  # pupil pulses while in love
+HEARTBEAT_PUPIL = (1.2, 1.5)  # pupil range of the pulse (sim/firmware clamp 0.3..2)
+TALK_WOBBLE = 0.06  # gaze wobble while Bob talks so the eyes look alive with the voice
+TALK_WOBBLE_HZ = 3.5
+TALK_PUPIL = 1.05
+BREATH_PUPIL = 0.04  # slow pupil breathing so the eyes never sit dead still
+BREATH_HZ = 0.2
 
 DIRECTOR_TOOLS = {"look_at_speaker", "set_expression"}
 NAMED_GREETINGS = tuple(g for g in GREETINGS if "{name}" in g)
@@ -170,6 +184,8 @@ class Director:
         self._voice_gaze_until = -math.inf
         self._look_at_until = -math.inf
         self._last_bearing: float | None = None
+        self._song_due = False
+        self._last_song_at = -1e9
         self._override: tuple[str, float] | None = None  # (expression, until)
         self._seen: dict[str, float] = {}
         self._candidate: str | None = None
@@ -180,6 +196,7 @@ class Director:
         self._next_gift_at: float | None = None
         self._sleepy_since: float | None = None
         self._next_yawn_at = -math.inf
+        self._blinks_at: list[float] = []  # scheduled blink edges (absolute clock times)
 
     # -- state ------------------------------------------------------------------------
 
@@ -216,11 +233,21 @@ class Director:
     def on_speech_start(self) -> None:
         now = self._touch()
         self._listening_until = now + LISTEN_S
+        self._schedule_blink(now + ATTENTION_BLINK_S)
+
+    def on_barge_in(self) -> None:
+        """Someone started talking while Bob was speaking: a surprised flash, then listening."""
+        now = self._touch()
+        self._override = ("surprised", now + SURPRISE_S)
+        self.on_speech_start()
 
     def on_transcript(self, text: str) -> None:
         now = self._touch()
+        self._schedule_blink(now + ATTENTION_BLINK_S)
         if "banana" in (text or "").lower():
             self._override = ("love", now + LOVE_S)
+            if now - self._last_song_at >= SONG_COOLDOWN_S:
+                self._song_due = True  # played on the next tick (this hook is sync)
 
     def on_assistant_text(self, text: str) -> None:
         now = self._touch()
@@ -262,7 +289,9 @@ class Director:
             self.on_speaking(True)
         elif kind == "playback_finished":
             self.on_speaking(False)
-        elif kind in ("barge_in", "speech_start"):
+        elif kind == "barge_in":
+            self.on_barge_in()
+        elif kind == "speech_start":
             self.on_speech_start()
 
     # -- tick ----------------------------------------------------------------------------
@@ -279,7 +308,17 @@ class Director:
             self._last_activity = now
         await self._update_engagement(target, now)
         self._update_base(target, speech, now)
+        await self._maybe_sing(now)
         await self._update_eyes(target, now)
+
+    async def _maybe_sing(self, now: float) -> None:
+        """Someone said banana: play the song clip (real track if present, else Bob's chant)."""
+        if not self._song_due:
+            return
+        self._song_due = False
+        self._last_song_at = now
+        self._override = ("love", now + SONG_S)
+        await self.phrases.say("song")
 
     def _observe_doa(self, doa, now: float) -> bool:
         if doa is None:
@@ -333,6 +372,8 @@ class Director:
             return
         self._seen[name] = now
         self._touch(now)
+        for offset in GREET_BLINKS:
+            self._schedule_blink(now + offset)
         line = self._greeting(name).replace(name, spoken_name(name))
         if not line.lower().startswith("bello"):
             line = f"Bello, {spoken_name(name)}! " + line
@@ -456,23 +497,51 @@ class Director:
             return clamp(self._last_bearing / GAZE_BEARING_FULL_DEG, -1, 1), 0.0
         return 0.4 * math.sin(now * 0.5), 0.15 * math.sin(now * 0.31)
 
+    def _schedule_blink(self, at: float) -> None:
+        self._blinks_at.append(at)
+
+    def _blink_due(self, now: float) -> bool:
+        """True on the tick a scheduled blink fires. ``blink`` is an edge on the wire: one true
+        tick makes one blink, so consecutive blinks need a false tick between them."""
+        due = [t for t in self._blinks_at if t <= now]
+        if not due:
+            return False
+        self._blinks_at = [t for t in self._blinks_at if t > now]
+        return True
+
+    @staticmethod
+    def _heartbeat(now: float) -> float:
+        """Lub-dub pupil pulse: a strong beat, a softer echo, then rest."""
+        phase = (now * HEARTBEAT_BPM / 60.0) % 1.0
+        lub = max(0.0, math.sin(2 * math.pi * phase)) ** 3
+        dub = 0.6 * max(0.0, math.sin(2 * math.pi * (phase - 0.18))) ** 3
+        low, high = HEARTBEAT_PUPIL
+        return low + (high - low) * min(1.0, lub + dub)
+
     async def _update_eyes(self, target: Person | None, now: float) -> None:
         expression = self._expression(target, now)
         gx, gy = self._gaze(target, now)
-        blink, pupil = False, 1.0
+        blink = self._blink_due(now)
+        breath = BREATH_PUPIL * math.sin(2 * math.pi * BREATH_HZ * now)
+        pupil = 1.0 + breath
         if expression == "sleepy":
             if self._sleepy_since is None:
                 self._sleepy_since = now
                 self._next_yawn_at = now
-            blink = (now - self._sleepy_since) % SLEEPY_BLINK_PERIOD_S < SLEEPY_BLINK_S
-            pupil = 0.8
+            blink = blink or (now - self._sleepy_since) % SLEEPY_BLINK_PERIOD_S < SLEEPY_BLINK_S
+            pupil = 0.8 + breath
             if now >= self._next_yawn_at:
                 self._next_yawn_at = now + YAWN_EVERY_S
                 await self.phrases.say("yawn")
         else:
             self._sleepy_since = None
             if expression == "love":
-                pupil = 1.3
+                pupil = self._heartbeat(now)
+            elif self._speaking:
+                # Talking: quick small gaze wobble and slightly wider pupils, like a chatty Minion.
+                gx = clamp(gx + TALK_WOBBLE * math.sin(2 * math.pi * TALK_WOBBLE_HZ * now), -1, 1)
+                gy = clamp(gy + 0.5 * TALK_WOBBLE * math.sin(2 * math.pi * 2.3 * now + 1.0), -1, 1)
+                pupil = TALK_PUPIL + breath
         state = EyeState(expression=expression, gx=gx, gy=gy, blink=blink, pupil=pupil)
         if not self._eyes_sent or state != self.eye_state:
             self.eye_state = state

@@ -17,7 +17,8 @@ def main(argv=None) -> int:
     parser.add_argument("source")
     parser.add_argument("--name", default=None)
     parser.add_argument("--out", default="assets/songs")
-    parser.add_argument("--max-seconds", type=float, default=90.0)
+    parser.add_argument("--start", type=float, default=0.0, help="seconds into the track to start")
+    parser.add_argument("--max-seconds", type=float, default=10.0, help="clip length (Bob sings this much)")
     args = parser.parse_args(argv)
     src = Path(args.source)
     if not src.is_file():

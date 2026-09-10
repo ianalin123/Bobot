@@ -9,9 +9,9 @@ from bob.director import (
     GIFT_MIN_S,
     GREET_STABLE_S,
     IDLE_SLEEPY_S,
-    LOVE_S,
     MAX_OMEGA_DEG_S,
     SEEN_COOLDOWN_S,
+    SURPRISE_S,
     UNKNOWN_HELLO_S,
     Console,
     Director,
@@ -185,13 +185,15 @@ async def test_recognized_greeting_starts_with_bello_and_spoken_name():
 # -- expressions ---------------------------------------------------------------
 
 
-async def test_banana_in_transcript_gives_love_for_three_seconds():
+async def test_banana_in_transcript_gives_love_while_the_song_plays():
+    from bob.director import SONG_S
+
     director, clock, _, eyes, _, _, _ = make()
     await run(director, clock, 0.1)
     director.on_transcript("Me want banana please")
     await run(director, clock, 0.1)
     assert eyes.last.expression == "love"
-    await run(director, clock, LOVE_S - 0.3)
+    await run(director, clock, SONG_S - 0.3)
     assert eyes.last.expression == "love"
     await run(director, clock, 0.4)
     assert eyes.last.expression != "love"
@@ -425,7 +427,9 @@ async def test_handle_event_maps_robot_client_events():
     director.handle_event({"type": "transcript", "text": "banana!"})
     await run(director, clock, 0.1)
     assert eyes.last.expression == "love"
-    await run(director, clock, LOVE_S + 0.5)
+    from bob.director import SONG_S
+
+    await run(director, clock, SONG_S + 0.5)
     director.handle_event({"type": "playback_started", "segment_id": 1})
     await run(director, clock, 0.1)
     assert director.speaking is True
@@ -435,6 +439,8 @@ async def test_handle_event_maps_robot_client_events():
     assert director.speaking is False
     director.handle_event({"type": "barge_in", "request_id": 2})
     await run(director, clock, 0.1)
+    assert eyes.last.expression == "surprised"  # talked over: a flash of surprise, then listening
+    await run(director, clock, SURPRISE_S)
     assert eyes.last.expression == "curious"
     director.handle_event({"type": "assistant_delta", "text": "one banana"})
     await run(director, clock, 0.1)
@@ -491,3 +497,21 @@ async def test_sing_song_tool_plays_song_and_hearts(director_factory=None):
     assert "song" in phrases.calls
     await director.tick([], None)
     assert director.eye_state.expression == "love"
+
+
+async def test_banana_mention_plays_song_clip_with_cooldown():
+    from bob.director import SONG_COOLDOWN_S
+
+    director, clock, _, eyes, phrases, _, _ = make()
+    await run(director, clock, 0.1)
+    director.on_transcript("I love banana")
+    await run(director, clock, 0.1)
+    assert phrases.calls.count("song") == 1
+    assert eyes.last.expression == "love"
+    director.on_transcript("banana again")
+    await run(director, clock, 0.1)
+    assert phrases.calls.count("song") == 1  # within cooldown
+    clock.now += SONG_COOLDOWN_S
+    director.on_transcript("banana!")
+    await run(director, clock, 0.1)
+    assert phrases.calls.count("song") == 2
