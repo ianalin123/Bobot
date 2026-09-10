@@ -80,3 +80,22 @@ This checks HTTP asset isolation, local STT → LLM → valid WAV, interruption,
 - [Ordering candidates](ORDERING.md): parts to evaluate, not verified delivery promises.
 
 Keep behavior and safety in `bob/robot.py`; implement hardware acknowledgements behind its `Hardware` protocol. Do not put motor logic in the browser or trust LLM prose as physical feedback. The current server intentionally refuses `BOB_HARDWARE` values other than `sim` until a reviewed adapter exists.
+
+## Jetson camera bring-up
+
+The current physical milestone is a USB camera on the Seeed reComputer Mini/J40.
+This path is intentionally separate from motor control: it does not move the
+SO101 or base and does not enable `BOB_HARDWARE`.
+
+On the Jetson, after cloning the repository, run:
+
+```sh
+python3 scripts/camera_probe.py --device /dev/video0
+python3 scripts/camera_probe.py --device /dev/video0 --preview
+```
+
+Set `BOB_CAMERA_DEVICE` instead of passing `--device` if the node changes after
+reboot. The probe uses system `v4l2-ctl` and `gst-launch-1.0`; it does not need
+the full Ollama, speech, or model setup. The expected result is a camera report,
+supported formats, and a live preview. A physical camera adapter and vision
+behavior are still separate work.
