@@ -91,9 +91,9 @@
 
 **Produces:** `assets/phrases/<key>.wav` for every `STOCK_PHRASES` key and `greet_NNN.wav` for each greeting rendered with a placeholder-free variant (greetings with `{name}` are rendered as two halves is over budget; instead render greetings **without** names: `{name}` replaced by "friend" only for the 30 greetings whose template ends with the name; the remaining 70 are TTS'd live). `manifest.json` maps key → file, chars, model. Script flags: `--provider elevenlabs|openai`, `--dry-run` prints total characters and exits, `--only KEY`. Stop if projected characters exceed `--budget` (default 6000). Never re-render existing files unless `--force`.
 
-- [ ] Tests: dry-run count equals sum of lengths; with a fake synthesizer, files are written and manifest is valid; existing files are skipped.
-- [ ] Run for real once (`uv run --group robot python scripts/render_phrases.py --provider elevenlabs`) and check `assets/phrases/` plus the ElevenLabs remaining quota via `/v1/user/subscription`. Report the characters used.
-- [ ] Commit `feat: pre-rendered Minion phrase cache`.
+- [x] Tests: dry-run count equals sum of lengths; with a fake synthesizer, files are written and manifest is valid; existing files are skipped.
+- [x] Run for real once (`uv run --group robot python scripts/render_phrases.py --provider elevenlabs`) and check `assets/phrases/` plus the ElevenLabs remaining quota via `/v1/user/subscription`. Report the characters used.
+- [x] Commit `feat: pre-rendered Minion phrase cache`.
 
 ### Task 5: Audio I/O on the Jetson (and fake)
 
@@ -165,8 +165,8 @@ class Base:
     async def watchdog(self)  # loop: if now-last_cmd>watchdog_s and moving: stop()
     def close(self)  # stop + torque off, always safe to call twice
 ```
-- [ ] Tests: pure rotation gives equal-magnitude raws; forward `vx` gives back wheel ~0 and left/right opposite signs; scaling applies when over MAX_RAW; drive clamps; watchdog stops after silence (use a controllable clock); `close()` idempotent.
-- [ ] Commit `feat: LeKiwi base driver with kinematics and watchdog`.
+- [x] Tests: pure rotation gives equal-magnitude raws; forward `vx` gives back wheel ~0 and left/right opposite signs; scaling applies when over MAX_RAW; drive clamps; watchdog stops after silence (use a controllable clock); `close()` idempotent.
+- [x] Commit `feat: LeKiwi base driver with kinematics and watchdog`.
 
 ### Task 9: ReSpeaker DoA and LEDs
 
