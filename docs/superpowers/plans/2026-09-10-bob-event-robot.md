@@ -105,8 +105,8 @@
 - `class FakeAudioIO` — same API, `feed_wav(bytes)` to inject turns, records played segments and cancels.
 - `class RobotClient` in `bob/audio.py` (or `bob/headless.py`): drives a `VoiceSession` without a browser: `send()` handler that routes `audio` events to `AudioIO.play`, `playback_*` acks back to `session.acknowledge`, and exposes `events` for the Director.
 
-- [ ] Tests: VAD on synthetic signal (silence→tone→silence) yields start and end with the pre-roll included; 15 s cap cuts; FakeAudioIO play/cancel ordering; RobotClient + `VoiceSession` with fake providers produce playback acks and commit history (reuse `tests/test_voice.py` fakes).
-- [ ] Commit `feat: headless audio I/O with VAD, barge-in and fake`.
+- [x] Tests: VAD on synthetic signal (silence→tone→silence) yields start and end with the pre-roll included; 15 s cap cuts; FakeAudioIO play/cancel ordering; RobotClient + `VoiceSession` with fake providers produce playback acks and commit history (reuse `tests/test_voice.py` fakes).
+- [x] Commit `feat: headless audio I/O with VAD, barge-in and fake`.
 
 ### Task 6: Feetech bus and fake
 
