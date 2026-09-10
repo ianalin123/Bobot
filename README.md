@@ -4,6 +4,14 @@ A local-first companion-robot workbench: animated Bob, interruptible voice, and 
 
 **Current target:** Apple Silicon Mac. Speech recognition, language inference, and synthesized voice run locally; no API keys, paid inference, or cloud fallback. This means local on the development computer, **not yet onboard a physical robot**. Initial dependencies/models require internet downloads.
 
+## Event robot (Jetson, real hardware)
+
+The `jetson-event` build runs Bob on a Jetson Orin Nano with a ReSpeaker XVF3800 mic array, an SO-101 arm and LeKiwi base on one Feetech bus, two round LCD eyes, and a USB camera for recognizing enrolled friends. Conversation uses OpenAI (`BOB_MODE=cloud`), stock Minion phrases are pre-rendered with ElevenLabs, and everything has a fake so the same code runs and tests on this Mac (`BOB_MODE=sim`).
+
+- [Deploy runbook](docs/DEPLOY.md): what to bring, first boot, setup script, doctor, eyes, faces, arm teach, console.
+- [Design spec](docs/superpowers/specs/2026-09-10-bob-event-robot-design.md) and [plan](docs/superpowers/plans/2026-09-10-bob-event-robot.md).
+- Eye simulator at `/eyes`, phone console at `/console?token=...` when the server is running.
+
 ## Start
 
 Prerequisites: Python 3.12, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download), and an installed macOS voice (`say -v '?'`). Node 22+ is only needed for frontend tests. On macOS, `brew install uv ollama` installs the first two tools if you use Homebrew.

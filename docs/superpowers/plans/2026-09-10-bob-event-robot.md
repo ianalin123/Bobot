@@ -265,15 +265,15 @@ upload_speed = 921600
 
 **docs/DEPLOY.md** sections, each with exact commands and a "you know it worked when": 0) Bring list (from spec §2); 1) First boot (USB-C→DP, create user `bob`, check `cat /etc/nv_tegra_release`, `nvpmodel -m 0`, `jetson_clocks`); 2) Network (`nmcli device wifi connect`, or Ethernet, or USB tethering; find IP `hostname -I`); 3) Get the code (git clone or `tar xf` from USB) and run `scripts/jetson_setup.sh`; 4) `.env` (copy from USB or paste keys), `BOB_MODE=cloud BOB_HARDWARE=real`; 5) `uv run python scripts/doctor.py`; 6) Audio check (`arecord`/`aplay` loopback, speaker on the JST, set volume with `alsamixer`); 7) Eyes: flash from Mac, plug into hub, `doctor` shows ping OK; 8) Faces: put portraits in `people/<Name>/`, run `enroll_faces.py`; 9) Arm: `discover_servos.py`, then `teach_poses.py` with the banana; 10) Base: `doa_calibrate.py`, then console teleop test with wheels off the ground first; 11) Start `systemctl --user start bob`, open `http://<ip>:8766/console?token=...` on the phone; 12) Show flow and recovery (restart service, disarm, stop). Include a troubleshooting table (no audio device → check `lsusb`; `ttyACM` permission → udev/dialout; camera not found → `v4l2-ctl --list-devices`; eyes black → backlight/init table; STT empty → mic channel/gain).
 
-- [ ] `bash -n` both scripts; run `make_bundle.sh` on the Mac to `bundle/` (wheel download will take minutes; verify a few aarch64 wheels landed, e.g. `numpy`, `opencv_python`); do not commit `bundle/` (gitignore it).
-- [ ] Commit `docs: Jetson setup, USB bundle and deploy runbook`.
+- [x] `bash -n` both scripts; run `make_bundle.sh` on the Mac to `bundle/` (wheel download will take minutes; verify a few aarch64 wheels landed, e.g. `numpy`, `opencv_python`); do not commit `bundle/` (gitignore it).
+- [x] Commit `docs: Jetson setup, USB bundle and deploy runbook`.
 
 ### Task 16: Final verification and handoff
 
-- [ ] `uv run pytest -q`, `node --test web/**/*.test.mjs web/*.test.mjs`, `uv run ruff check bob tests scripts`, `uv run ruff format --check bob tests scripts`, `pio run -d firmware/eye` all green; record outputs.
-- [ ] Start the server in sim mode, open `/` and `/eyes` in Chrome via the browser tools, screenshot both, and confirm the eye sim reacts to typing "banana" (love expression).
-- [ ] Update `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` with a short "September 10 event build" section pointing at the spec and DEPLOY.md.
-- [ ] Push branch `jetson-event` to origin and open a PR (`gh pr create`) with the summary and the shopping list.
+- [x] `uv run pytest -q`, `node --test web/**/*.test.mjs web/*.test.mjs`, `uv run ruff check bob tests scripts`, `uv run ruff format --check bob tests scripts`, `pio run -d firmware/eye` all green; record outputs.
+- [x] Start the server in sim mode, open `/` and `/eyes` in Chrome via the browser tools, screenshot both, and confirm the eye sim reacts to typing "banana" (love expression).
+- [x] Update `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` with a short "September 10 event build" section pointing at the spec and DEPLOY.md.
+- [x] Push branch `jetson-event` to origin and open a PR (`gh pr create`) with the summary and the shopping list.
 
 ## Self-review notes
 

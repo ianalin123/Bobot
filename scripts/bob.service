@@ -1,0 +1,17 @@
+[Unit]
+Description=Bob the Minion robot runtime
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%REPO%
+EnvironmentFile=%REPO%/.env
+Environment=PATH=%REPO%/.venv/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=%REPO%/.venv/bin/uvicorn bob.server:app --host 0.0.0.0 --port 8766
+Restart=on-failure
+RestartSec=3
+# Motors are never energized at start; the console/enable step is explicit.
+
+[Install]
+WantedBy=default.target
