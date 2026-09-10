@@ -146,8 +146,8 @@ Signed values are decoded/encoded automatically for the registers listed in `SIG
 - `scripts/discover_servos.py [--port] [--baud]`: scans, prints a table (id, model, position, voltage), reads homing offset and limits, writes `config/calibration.json`.
 - `scripts/teach_poses.py [--port] [--out config/poses.json]`: torque off all, for each pose name prompt Enter and record positions; then prompts for gripper open, gripper closed on banana (records position and 3 load samples, sets threshold = 60% of mean), writes JSON, re-enables torque at end only if `--hold`.
 
-- [ ] Tests with `FakeBus`: perform sequence writes expected goals in order; grasp verification raises when load stays 0; `stop()` freezes and blocks; per-tick clamp never exceeds `max_step`; `Poses.load` validates required keys. Scripts are tested by calling their `main(argv, bus=FakeBus, input=fake_input)` functions.
-- [ ] Commit `feat: SO-101 arm adapter with teach and discovery scripts`.
+- [x] Tests with `FakeBus`: perform sequence writes expected goals in order; grasp verification raises when load stays 0; `stop()` freezes and blocks; per-tick clamp never exceeds `max_step`; `Poses.load` validates required keys. Scripts are tested by calling their `main(argv, bus=FakeBus, input=fake_input)` functions.
+- [x] Commit `feat: SO-101 arm adapter with teach and discovery scripts`.
 
 ### Task 8: Base driver and kinematics
 
@@ -214,9 +214,9 @@ upload_speed = 921600
 **Protocol (protocol.h):** read lines from `Serial` (USB CDC); JSON with `e/gx/gy/blink/p` updates targets; `{"cmd":"side","value":"L"}` stores side in `Preferences` namespace `eye`; `{"cmd":"ping"}` answers `{"ok":1,"side":"L","fps":N,"fw":"0.1.0"}`; `{"cmd":"bl","value":0..1023}` sets backlight. Unknown → `{"err":"unknown"}`. If no message for 2 s after having received some, keep last state (do not reset).
 **Scripts:** `build_eyes.sh` runs `pio run -d firmware/eye` then `esptool --chip esp32s3 merge-bin -o firmware/eye/dist/eye-merged.bin --flash-mode dio --flash-size 16MB 0x0 bootloader.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin` (paths from `.pio/build/eye/` and the framework package's `tools/partitions/boot_app0.bin`). `flash_eyes.sh <port> <L|R>` writes the merged bin at 0x0 with `--before default-reset --after hard-reset`, waits 3 s, sends `{"cmd":"side","value":"<L|R>"}` and `{"cmd":"ping"}` via `python -m serial.tools.miniterm`-free approach (a tiny Python snippet using pyserial), prints the reply.
 
-- [ ] `pio run -d firmware/eye` builds on this Mac (install pioarduino platform; first build downloads toolchains). Commit `dist/eye-merged.bin` (size ~1–2 MB; acceptable for tomorrow) or keep in the USB bundle if >5 MB.
-- [ ] README lists: which USB port appears (`/dev/cu.usbmodem*`), BOOT-button recovery, how to tell L from R, and the "wrong colours → alternate init table" note.
-- [ ] Commit `feat: ESP32-S3 round LCD eye firmware`.
+- [x] `pio run -d firmware/eye` builds on this Mac (install pioarduino platform; first build downloads toolchains). Commit `dist/eye-merged.bin` (size ~1–2 MB; acceptable for tomorrow) or keep in the USB bundle if >5 MB.
+- [x] README lists: which USB port appears (`/dev/cu.usbmodem*`), BOOT-button recovery, how to tell L from R, and the "wrong colours → alternate init table" note.
+- [x] Commit `feat: ESP32-S3 round LCD eye firmware`.
 
 ### Task 12: Camera and face recognition
 
@@ -238,8 +238,8 @@ upload_speed = 921600
 
 **Produces:** `class Director: __init__(robot, eyes, base=None, doa=None, phrases: PhrasePlayer, settings, clock=time.monotonic, rng=random.Random(0))`, with `async def tick(persons: list[Person], doa: tuple[int,bool]|None, now)` called at 10 Hz, and event hooks `on_speech_start()`, `on_transcript(text)`, `on_assistant_text(text)`, `on_speaking(bool)`, `on_tool(name, args)`. Outputs go through `eyes.set(EyeState)`, `phrases.say(key_or_text)` (queue a cached WAV or a TTS line into the audio queue with priority below conversation), `robot.command("offer_banana")`, `base.drive/stop`. Rules exactly as spec §8 with constants at the top (`GREET_STABLE_S=1.0`, `SEEN_COOLDOWN_S=600`, `LOVE_S=3.0`, `IDLE_SLEEPY_S=60`, `GIFT_MIN_S=240`, `GIFT_MAX_S=480`, `TURN_DEADBAND_DEG=20`, `CLOSE_SIZE=0.35`). `PhrasePlayer` is a small class in `bob/director.py` with `say(text_or_key)` and a `FakePhrasePlayer`. Base motion only when `settings.hardware=="real"` and `console.armed` (a simple object with `.armed: bool` and `.estop: bool`).
 
-- [ ] Tests (pure, fake clock/rng): recognized person greeted once after 1 s stability and not again within cooldown; "banana" in transcript → love for 3 s then back; idle → sleepy after 60 s and wakes on speech; DoA outside deadband with real hardware and armed console → `base.drive` called with omega sign matching angle, inside deadband → stop; estop → no drive calls ever; random gift fires within window and only when `robot.state.banana=="compartment"`.
-- [ ] Commit `feat: Director behavior layer`.
+- [x] Tests (pure, fake clock/rng): recognized person greeted once after 1 s stability and not again within cooldown; "banana" in transcript → love for 3 s then back; idle → sleepy after 60 s and wakes on speech; DoA outside deadband with real hardware and armed console → `base.drive` called with omega sign matching angle, inside deadband → stop; estop → no drive calls ever; random gift fires within window and only when `robot.state.banana=="compartment"`.
+- [x] Commit `feat: Director behavior layer`.
 
 ### Task 14: Server wiring, console and headless mode
 
