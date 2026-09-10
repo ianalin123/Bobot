@@ -1,5 +1,9 @@
 # Architecture
 
+## September 10 event build
+
+`bob/server.py` now builds the runtime from `bob/config.py` settings: `sim` keeps the Mac workbench, `cloud`/`local` with `BOB_HARDWARE=real` wires `bob/hardware/` (Feetech bus, SO-101 arm adapter behind the existing `Hardware` protocol, LeKiwi base with watchdog, ReSpeaker DoA, serial eyes), `bob/vision/` (camera, face recognition, tracker), `bob/audio.py` (headless capture/playback with barge-in) and `bob/director.py` (gaze, expressions, greetings, gifts, turn-to-voice, supervised approach). The language model still only gets `offer_banana`, `stop_motion`, `look_at_speaker` and `set_expression`; motion is gated by the console's e-stop and dead-man arm. Details: [design spec](superpowers/specs/2026-09-10-bob-event-robot-design.md).
+
 ## September 6 deployment decision (planned, not implemented)
 
 Target: borrowed **12V SO-101 on a LeKiwi base**, Pi for robot-local I/O, existing computer for AI over Wi-Fi. The table below describes today's local runtime and eventual onboard options, not an already working distributed system.

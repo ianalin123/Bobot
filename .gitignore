@@ -12,3 +12,10 @@ artifacts/
 node_modules/
 .DS_Store
 *.log
+bundle/
+assets/phrases/
+people/
+config/poses.json
+config/calibration.json
+firmware/eye/.pio/
+.claude/

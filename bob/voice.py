@@ -4,6 +4,10 @@ import json
 import re
 import time
 
+EXPRESSIONS = ["neutral", "curious", "happy", "love", "sleepy", "surprised", "sad", "angry_playful"]
+ROBOT_TOOLS = {"offer_banana", "stop_motion"}
+DIRECTOR_TOOLS = {"look_at_speaker", "set_expression"}
+
 TOOLS = [
     {
         "type": "function",
@@ -19,7 +23,22 @@ TOOLS = [
             "Start offering one banana when the person explicitly asks for one. Returns started, not completed.",
         ),
         ("stop_motion", "Stop robot movement when the user asks to stop."),
+        ("look_at_speaker", "Turn your eyes and head toward whoever is talking to you."),
     ]
+] + [
+    {
+        "type": "function",
+        "function": {
+            "name": "set_expression",
+            "description": "Change your eye expression to match the mood of what you are saying.",
+            "parameters": {
+                "type": "object",
+                "properties": {"expression": {"type": "string", "enum": EXPRESSIONS}},
+                "required": ["expression"],
+                "additionalProperties": False,
+            },
+        },
+    }
 ]
 
 SYSTEM = """You are Bob, a friendly little banana-delivery companion robot. Speak in short,
@@ -60,9 +79,11 @@ def direct_action(text):
 
 
 class VoiceSession:
-    def __init__(self, send, stt, llm, tts, robot):
+    def __init__(self, send, stt, llm, tts, robot, *, on_tool=None):
         self.send = send
         self.stt, self.llm, self.tts, self.robot = stt, llm, tts, robot
+        # Optional director hook for gaze/expression tools: `async (name, arguments) -> result dict`.
+        self.on_tool = on_tool
         self.task = None
         self.request_id = 0
         self.history = []
@@ -85,6 +106,22 @@ class VoiceSession:
         self.segments = {}
         self.started_segment = None
         self.history = self.history[-16:]
+
+    async def director_tool(self, name, arguments):
+        """Validate look_at_speaker / set_expression arguments, then hand them to the director hook."""
+        if self.on_tool is None:
+            return {"accepted": False, "reason": "No director attached."}
+        if arguments is None:
+            arguments = {}
+        if not isinstance(arguments, dict):
+            return {"accepted": False, "reason": "Tool arguments must be an object."}
+        if name == "look_at_speaker":
+            if arguments:
+                return {"accepted": False, "reason": "This tool accepts no arguments."}
+        elif set(arguments) != {"expression"} or arguments["expression"] not in EXPRESSIONS:
+            return {"accepted": False, "reason": "expression must be one of: " + ", ".join(EXPRESSIONS) + "."}
+        result = await self.on_tool(name, arguments)
+        return result if isinstance(result, dict) else {"accepted": bool(result)}
 
     async def interrupt(self, request_id=None):
         if self.task and not self.task.done():
@@ -204,8 +241,12 @@ class VoiceSession:
                     for call in calls[:2]:
                         function = call.get("function", {})
                         name = function.get("name")
-                        if name not in {"offer_banana", "stop_motion"} or name in seen:
+                        if name not in ROBOT_TOOLS | DIRECTOR_TOOLS or name in seen:
                             result = {"accepted": False, "reason": "Unsupported or duplicate tool."}
+                        elif name in DIRECTOR_TOOLS:
+                            result = await self.director_tool(name, function.get("arguments"))
+                            if result.get("accepted"):
+                                seen.add(name)
                         elif function.get("arguments") not in ({}, None):
                             result = {"accepted": False, "reason": "This tool accepts no arguments."}
                         else:

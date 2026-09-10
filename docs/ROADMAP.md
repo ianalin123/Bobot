@@ -1,5 +1,9 @@
 # Build plan
 
+## September 10 event build (implemented, hardware-unverified)
+
+The Jetson build described in [the design spec](superpowers/specs/2026-09-10-bob-event-robot-design.md) is implemented on branch `jetson-event`: cloud voice with local fallback, YuNet/SFace face recognition with consented enrollment, ESP32 LCD eye firmware plus a browser eye simulator, a Feetech bus driver for the SO-101 arm and LeKiwi base, a Director behavior layer, a phone console with e-stop and dead-man wander, and a one-shot Jetson setup script with an offline USB bundle. All of it is tested against fakes on a Mac; nothing below has touched a motor. Follow [DEPLOY.md](DEPLOY.md) on hardware day and treat every hardware step as a validation gate, not a promise.
+
 ## Week-one demo definition
 
 A wheeled companion carries one manually loaded banana, retrieves/presents it from a fixed body cradle with a borrowed 12V SO-101 mounted on its LeKiwi base, talks using the existing offboard computer over Wi-Fi, and stops speaking when interrupted. A Pi handles robot-local I/O. Manual driving and recipient confirmation are acceptable. A one-foot plush is the character shell, not a validated overall robot size. No table pickup, autonomous person following, face identification, or LinkedIn integration is required for the competition demo.

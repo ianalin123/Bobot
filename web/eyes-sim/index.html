@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bob · eyes</title>
+<style>
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;background:#000;color:#9aa39c;font-family:system-ui,-apple-system,sans-serif;display:flex;flex-direction:column;overflow:hidden}
+.eyes{flex:1;display:flex;align-items:center;justify-content:center;gap:6vmin;padding:2vmin}
+canvas{width:min(44vw,80vh);height:min(44vw,80vh);border-radius:50%;background:#000;display:block}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:10px 16px;font-size:12px;font-family:ui-monospace,monospace;letter-spacing:.5px;border-top:1px solid #1a1f1c;background:#050605}
+.bar label{display:flex;align-items:center;gap:8px}select{font:inherit;background:#101412;color:#d7ddd8;border:1px solid #2a332d;border-radius:6px;padding:5px 8px}
+.badge{padding:4px 10px;border-radius:12px;border:1px solid #2a332d;color:#7d8a80}.badge.live{color:#8fd19a;border-color:#2f5f3a}.badge.live:before{content:'● ';}
+kbd{background:#141916;border:1px solid #2a332d;border-radius:4px;padding:1px 5px;color:#c9d0cb}.hint{color:#5f6963;margin-left:auto}
+body.hide-bar .bar{display:none}
+</style>
+</head>
+<body>
+<div class="eyes">
+  <canvas id="left" width="360" height="360" aria-label="Left eye, green iris"></canvas>
+  <canvas id="right" width="360" height="360" aria-label="Right eye, brown iris"></canvas>
+</div>
+<div class="bar">
+  <span class="badge" id="link">demo</span>
+  <label>Expression <select id="expression" aria-label="Expression"></select></label>
+  <span><kbd>B</kbd> blink · <kbd>H</kbd> love · <kbd>F</kbd> hide bar · mouse = gaze</span>
+  <span class="hint" id="state"></span>
+</div>
+<script type="module" src="/assets/eyes-sim/eyes.mjs"></script>
+</body></html>

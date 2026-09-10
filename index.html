@@ -2,7 +2,7 @@
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bob · little robot, local brain</title><link rel="stylesheet" href="/assets/styles.css"></head>
 <body><main>
-<header><div><p class="eyebrow">BOB / ROBOT LAB · 001</p><h1>Little robot. Local brain.</h1><p class="subtitle">A companion in the making. Powered by your machine.</p></div><span class="badge" id="connection">Connecting…</span></header>
+<header><div><p class="eyebrow">BOB / ROBOT LAB · 001</p><h1>Little robot. Local brain.</h1><p class="subtitle">A companion in the making. Powered by your machine. <a href="/eyes">Eyes</a> · <a href="/console">Console</a></p></div><span class="badge" id="connection">Connecting…</span></header>
 <div class="layout">
 <section class="stage" aria-label="Animated robot simulator">
   <div class="stage-top"><span>BEHAVIOR SIMULATION</span><button id="face">↗ Face view</button></div>
@@ -21,7 +21,7 @@
   <p class="metrics" id="metrics">Timings appear after a turn.</p><p class="error" id="error" role="alert"></p>
 </section></div>
 <div class="bottom-layout">
-<section class="panel"><div class="section-title"><h2>One important banana.</h2><span class="tiny">SIMULATED HARDWARE</span></div><p id="status" aria-live="polite">Waiting for runtime…</p>
+<section class="panel"><div class="section-title"><h2>One important banana.</h2><span class="tiny">SIMULATED HARDWARE</span></div><p id="status" aria-live="polite">Waiting for runtime…</p><p class="metrics" id="scene">Scene: nobody · voice —</p>
   <div class="controls"><button class="primary" id="offer">Offer banana</button><button id="take">Confirm handoff</button><button id="reload">Reload</button><button class="stop" id="stop">■ Stop motion</button><button id="reset">Reset simulation</button></div>
   <div class="controls moods"><span>Expression</span><button data-mood="curious">Curious</button><button data-mood="happy">Happy</button><button data-mood="sleepy">Sleepy</button></div>
   <p class="hint">The backend owns the sequence. This view reflects adapter acknowledgements; it does not drive motors. Escape stops speech and motion.</p>

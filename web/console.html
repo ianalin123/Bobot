@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Bob · console</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;background:#0d100e;color:#d7ddd8;font-family:system-ui,-apple-system,sans-serif;font-size:15px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+main{max-width:520px;margin:auto;padding:12px 12px 32px;display:flex;flex-direction:column;gap:12px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.6px;color:#8c968f}
+header a{color:#8fd19a;text-decoration:none}
+.badge{padding:5px 10px;border-radius:12px;border:1px solid #2a332d}
+.badge.online{color:#8fd19a;border-color:#2f5f3a}.badge.online:before{content:'● '}
+button{font:inherit;color:inherit;border:1px solid #2a332d;background:#161b18;border-radius:16px;padding:16px 12px;font-size:17px;font-weight:600;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none}
+button:active,button.held{background:#243029;border-color:#3f5546}
+button:disabled{opacity:.35}
+.stop{background:#c0392b;border-color:#e74c3c;color:#fff;font-size:44px;font-weight:800;letter-spacing:4px;min-height:34vh;border-radius:28px;box-shadow:0 0 0 6px #c0392b33}
+.stop:active{background:#96281b}
+.estop .stop{background:#5b1f18;box-shadow:0 0 0 6px #e74c3c88}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.arm{min-height:88px;font-size:22px;background:#1b2a20;border-color:#2f5f3a}
+.arm.held{background:#2e7d46;border-color:#6bd48a;color:#fff}
+.arm.blocked{background:#2b1f1f;border-color:#5b1f18}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,64px);gap:8px}
+.pad button{padding:0;font-size:26px;border-radius:14px}
+.pad .center{background:transparent;border-style:dashed;font-size:11px;font-family:ui-monospace,monospace;color:#6f7a72}
+.pad:not(.armed) button:not(.center){opacity:.35}
+.status{background:#111512;border:1px solid #1f2622;border-radius:16px;padding:10px 14px;font-size:13px;line-height:1.7}
+.status dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:0}
+.status dt{color:#7d8a80;font-family:ui-monospace,monospace;font-size:11px;letter-spacing:.6px;text-transform:uppercase;padding-top:3px}
+.status dd{margin:0;overflow-wrap:anywhere}
+.ok{color:#8fd19a}.bad{color:#ff8a80}.warn{color:#f5c76a}
+#error{color:#ff8a80;font-size:13px;min-height:1.2em;margin:0}
+.tiny{font-size:11px;color:#6f7a72;text-align:center;margin:0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <span>BOB · CONSOLE</span>
+  <span id="mode">—</span>
+  <span><a href="/eyes">eyes</a></span>
+  <span class="badge" id="conn">connecting…</span>
+</header>
+
+<button class="stop" id="stop" aria-label="Emergency stop">STOP</button>
+<div class="row">
+  <button id="clear">Clear e-stop</button>
+  <button id="enable">Enable arm</button>
+</div>
+
+<button class="arm" id="arm" aria-label="Hold to arm the base">HOLD TO ARM</button>
+<div class="pad" id="pad" aria-label="Teleop">
+  <button class="center"></button>
+  <button data-drive="0.1,0,0" aria-label="Forward">▲</button>
+  <button class="center"></button>
+  <button data-drive="0,0,25" aria-label="Turn left">⟲</button>
+  <button class="center" id="pad-hint">hold ARM</button>
+  <button data-drive="0,0,-25" aria-label="Turn right">⟳</button>
+  <button data-drive="0,0.1,0" aria-label="Strafe left">◀</button>
+  <button data-drive="-0.1,0,0" aria-label="Back">▼</button>
+  <button data-drive="0,-0.1,0" aria-label="Strafe right">▶</button>
+</div>
+
+<div class="row">
+  <button id="take">Confirm handoff</button>
+  <button id="reload">Reload banana</button>
+</div>
+<p id="error" role="alert"></p>
+
+<section class="status" aria-live="polite">
+  <dl>
+    <dt>console</dt><dd id="s-console">—</dd>
+    <dt>robot</dt><dd id="s-robot">—</dd>
+    <dt>director</dt><dd id="s-director">—</dd>
+    <dt>person</dt><dd id="s-person">—</dd>
+    <dt>voice</dt><dd id="s-doa">—</dd>
+    <dt>heard</dt><dd id="s-transcript">—</dd>
+    <dt>said</dt><dd id="s-reply">—</dd>
+    <dt>eyes</dt><dd id="s-eyes">—</dd>
+    <dt>devices</dt><dd id="s-devices">—</dd>
+  </dl>
+</section>
+<p class="tiny">STOP latches the e-stop and freezes the arm. Wheels move only while ARM is held (dead-man, 600 ms).</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const token = new URLSearchParams(location.search).get('token') || '';
+const ARM_REFRESH_MS = 250, DRIVE_MS = 100;
+let ws = null, online = false, console_ = {armed: false, estop: false, arm_enabled: false};
+let armTimer = 0, driveTimer = 0, vector = [0, 0, 0], robot = {};
+
+const send = data => { if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify(data)); };
+const error = text => { $('error').textContent = text || ''; };
+
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const query = `role=console${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  try { ws = new WebSocket(`${proto}://${location.host}/ws?${query}`); } catch { setTimeout(connect, 2000); return; }
+  ws.onopen = () => { online = true; $('conn').textContent = 'connected'; $('conn').classList.add('online'); error(''); render(); };
+  ws.onclose = () => { online = false; releaseArm(); $('conn').textContent = 'reconnecting…'; $('conn').classList.remove('online'); render(); setTimeout(connect, 2000); };
+  ws.onerror = () => {};
+  ws.onmessage = ({data}) => {
+    let m; try { m = JSON.parse(data); } catch { return; }
+    switch (m.type) {
+      case 'hello': $('mode').textContent = `${m.mode}`; break;
+      case 'robot_state': robot = m.state; render(); break;
+      case 'console': console_ = m; render(); break;
+      case 'status': renderStatus(m); break;
+      case 'person': $('s-person').textContent = m.person ? `${m.person.name || 'stranger'} · x ${m.person.cx.toFixed(2)} · size ${m.person.size.toFixed(2)}${m.person.emotion ? ` · ${m.person.emotion}` : ''}` : 'nobody'; break;
+      case 'doa': $('s-doa').textContent = `${m.angle}°${m.speech ? ' · speech' : ''}`; break;
+      case 'eyes': $('s-eyes').textContent = `${m.state.e} · gaze ${m.state.gx}, ${m.state.gy}`; break;
+      case 'action_result': if (!m.result.accepted) error(m.result.reason || 'Rejected'); else error(''); break;
+      case 'error': error(m.message); break;
+    }
+  };
+}
+
+function render() {
+  document.body.classList.toggle('estop', console_.estop);
+  $('arm').classList.toggle('held', console_.armed);
+  $('arm').classList.toggle('blocked', console_.estop);
+  $('arm').textContent = console_.estop ? 'E-STOP LATCHED' : console_.armed ? 'ARMED · keep holding' : 'HOLD TO ARM';
+  $('pad').classList.toggle('armed', console_.armed);
+  $('pad-hint').textContent = console_.armed ? 'live' : 'hold ARM';
+  $('s-console').innerHTML = `${console_.estop ? '<span class="bad">e-stop</span>' : '<span class="ok">clear</span>'} · ${console_.armed ? '<span class="ok">armed</span>' : 'disarmed'} · arm ${console_.arm_enabled ? '<span class="ok">enabled</span>' : '<span class="warn">off</span>'}`;
+  const phase = robot.phase || '—';
+  $('s-robot').textContent = `${robot.stopped ? 'STOPPED · ' : ''}${phase} · banana ${robot.banana || '—'} · ${robot.deliveries || 0} delivered${robot.error ? ` · ${robot.error}` : ''}`;
+  for (const id of ['stop', 'clear', 'enable', 'arm', 'take', 'reload']) $(id).disabled = !online;
+  $('take').disabled = !online || phase !== 'waiting';
+  $('reload').disabled = !online || robot.stopped || phase !== 'idle' || robot.banana === 'compartment';
+}
+function renderStatus(m) {
+  $('s-director').textContent = `${m.director}${m.speaking ? ' · speaking' : ''} · ${m.hardware}`;
+  $('s-transcript').textContent = m.transcript || '—';
+  $('s-reply').textContent = m.reply || '—';
+}
+
+// Dead-man: refresh armed=true every 250 ms while held; the server disarms after 600 ms of silence.
+function holdArm(event) {
+  event.preventDefault();
+  if (armTimer || !online) return;
+  try { $('arm').setPointerCapture(event.pointerId); } catch {}
+  send({type: 'console', armed: true});
+  armTimer = setInterval(() => send({type: 'console', armed: true}), ARM_REFRESH_MS);
+}
+function releaseArm() {
+  if (armTimer) { clearInterval(armTimer); armTimer = 0; send({type: 'console', armed: false}); }
+  stopDrive();
+}
+$('arm').onpointerdown = holdArm;
+for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) $('arm').addEventListener(type, releaseArm);
+$('arm').oncontextmenu = event => event.preventDefault();
+
+// Teleop: at most 10 Hz, only while armed (the server drops drive messages when it is not).
+function tickDrive() {
+  if (console_.armed && vector.some(v => v !== 0)) send({type: 'drive', vx: vector[0], vy: vector[1], omega: vector[2]});
+}
+function startDrive(event) {
+  event.preventDefault();
+  if (!console_.armed) return;
+  const button = event.currentTarget;
+  try { button.setPointerCapture(event.pointerId); } catch {}
+  button.classList.add('held');
+  vector = button.dataset.drive.split(',').map(Number);
+  tickDrive();
+  if (!driveTimer) driveTimer = setInterval(tickDrive, DRIVE_MS);
+}
+function stopDrive() {
+  if (driveTimer) { clearInterval(driveTimer); driveTimer = 0; }
+  if (vector.some(v => v !== 0)) { vector = [0, 0, 0]; if (console_.armed) send({type: 'drive', vx: 0, vy: 0, omega: 0}); }
+  document.querySelectorAll('.pad .held').forEach(b => b.classList.remove('held'));
+}
+for (const button of document.querySelectorAll('[data-drive]')) {
+  button.onpointerdown = startDrive;
+  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) button.addEventListener(type, stopDrive);
+  button.oncontextmenu = event => event.preventDefault();
+}
+
+$('stop').onclick = () => { releaseArm(); send({type: 'action', action: 'stop_motion'}); send({type: 'console', estop: true}); };
+$('clear').onclick = () => send({type: 'console', estop: false});
+$('enable').onclick = () => send({type: 'console', enable_arm: true});
+$('take').onclick = () => send({type: 'action', action: 'take_banana'});
+$('reload').onclick = () => send({type: 'action', action: 'reload'});
+window.addEventListener('blur', releaseArm);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseArm(); });
+window.addEventListener('pagehide', () => { releaseArm(); ws?.close(); });
+
+async function health() {
+  try {
+    const data = await (await fetch('/api/health')).json();
+    $('s-devices').innerHTML = Object.entries(data.devices || {}).map(([name, status]) => {
+      const cls = status === 'ok' ? 'ok' : /^(error|missing)/.test(status) ? 'bad' : 'warn';
+      return `<span class="${cls}">${name}: ${status}</span>`;
+    }).join(' · ') || '—';
+  } catch { $('s-devices').textContent = 'runtime unreachable'; }
+}
+connect(); render(); void health(); setInterval(health, 5000);
+</script>
+</body>
+</html>

@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from bob import server
+from bob.config import Settings
 from bob.robot import Robot, SimHardware
 
 
@@ -11,11 +12,11 @@ def client(monkeypatch):
     async def ready():
         return {"ready": True, "model": "fake-local"}
 
-    monkeypatch.setattr(server.llm, "check", ready)
-    monkeypatch.setattr(server.stt, "load", lambda: None)
-    monkeypatch.setattr(server, "robot", Robot(SimHardware(0.001)))
-    monkeypatch.setattr(server, "connected", False)
-    with TestClient(server.app) as test_client:
+    app = server.build_app(Settings(), robot=Robot(SimHardware(0.001)))
+    runtime = app.state.runtime
+    monkeypatch.setattr(runtime.llm, "check", ready)
+    monkeypatch.setattr(runtime.stt, "load", lambda: None)
+    with TestClient(app) as test_client:
         yield test_client
 
 
@@ -41,5 +42,6 @@ def test_single_controller_and_disconnect_stops_motion(client):
         while (message := ws.receive_json())["type"] != "action_result":
             pass
         assert message["result"]["accepted"]
-    assert server.robot.state.stopped
-    assert not server.connected
+    runtime = client.app.state.runtime
+    assert runtime.robot.state.stopped
+    assert not runtime.connected
