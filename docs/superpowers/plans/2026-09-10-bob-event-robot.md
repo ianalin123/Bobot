@@ -63,8 +63,8 @@
 
 **Produces:** `SYSTEM_PROMPT: str` (Bob persona: sweet, childlike, loves teddy Tim and bananas; ~60% English, Minionese sprinkled; one or two short sentences; never claims a completed handoff; tool guidance for `offer_banana`, `stop_motion`, `look_at_speaker`, `set_expression`); `MINIONESE: dict[str,str]` (bello=hello, poopaye=goodbye, tank yu=thank you, bee do=fire alarm, papoy=toy, tulaliloo ti amo=we love you, bapple=apple, gelato=ice cream, hana dul sae=1 2 3, me want banana, muak=kiss, para tu=for you, stopa=stop, tatata bala tu=I hate you (never use), pwede na=can we start, underwear=I swear, bananaaa!); `GREETINGS: list[str]` exactly 100 unique templates containing `{name}` at most once, mixing Minionese and English, each ≤ 90 characters; `STOCK_PHRASES: dict[str,str]` keys `bello, banana, poopaye, laugh, yawn, tank_yu, bee_do, para_tu, whoa, uh_oh`; `pick_greeting(name: str, rng=random) -> str`.
 
-- [ ] Tests: 100 greetings, all unique, all ≤90 chars, each has `{name}` ≤ 1 time, `pick_greeting("Sissi")` contains "Sissi" when the template has the placeholder, total characters of `GREETINGS` (with an 8-char name) + `STOCK_PHRASES` < 6000 (ElevenLabs budget).
-- [ ] Commit `feat: Bob persona, Minionese lexicon and 100 greetings`.
+- [x] Tests: 100 greetings, all unique, all ≤90 chars, each has `{name}` ≤ 1 time, `pick_greeting("Sissi")` contains "Sissi" when the template has the placeholder, total characters of `GREETINGS` (with an 8-char name) + `STOCK_PHRASES` < 6000 (ElevenLabs budget).
+- [x] Commit `feat: Bob persona, Minionese lexicon and 100 greetings`.
 
 ### Task 3: Cloud providers with local fallback
 
