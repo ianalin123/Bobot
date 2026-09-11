@@ -15,8 +15,8 @@ struct Expression {
   const char *name;
   float upperLid;      // fraction of the eye height covered by the upper lid (0 open .. 1 closed)
   float lowerLid;      // same for the lower lid
-  float irisScale;     // multiplier on IRIS_R (83 px; 62 in the sim)
-  float pupilScale;    // multiplier on PUPIL_R (37 px; 28 in the sim)
+  float irisScale;     // multiplier on IRIS_R (69 px; 52 in the sim)
+  float pupilScale;    // multiplier on PUPIL_R (31 px; 23 in the sim)
   PupilShape pupilShape;
   float tilt;          // upper-lid rotation in degrees, mirrored per eye (+ = inner corner up = sad)
   float lidAsym;       // extra upper-lid opening on the RIGHT eye only ("curious")
@@ -66,8 +66,11 @@ class Eye {
   void draw(float blink);
   void drawHeart(int16_t cx, int16_t cy, float r, uint16_t colour);
   void applyLidsAndClip(float blink);
+  void buildBackground();
 
   Arduino_Canvas *canvas_;
+  uint16_t *bg_ = nullptr;  // static goggle rim + black surround, rendered once (PSRAM)
+  bool bgTried_ = false;
   char side_;
   const Expression *expression_;
   Params cur_, target_;

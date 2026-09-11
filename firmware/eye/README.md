@@ -4,7 +4,10 @@ One board per eye. Each Waveshare **ESP32-S3-Touch-LCD-2.1** (ST7701, 480x480 ro
 the ESP32-S3's 16-bit RGB parallel interface; 16 MB flash, 8 MB PSRAM) renders a procedural eye and
 takes JSON lines over its native USB-CDC port from the Jetson (`bob/hardware/eyes.py`). The geometry
 and expression table are copied from the browser twin in `web/eyes-sim/` (`expressions.mjs`,
-`eyes.mjs`, 360 px) and scaled by 480/360, so what you see in the sim is what the LCD shows.
+`eyes.mjs`, 360 px) and scaled by 480/360, so what you see in the sim is what the LCD shows:
+Bob's silver goggle rim with four rivets around the eye, Minion-yellow eyelids with a darker
+crease, a shadow under the goggle lip and a soft glare across the lens. The rim never changes,
+so it is rendered once into a PSRAM template and copied per frame.
 
 **Status: builds clean; not yet run on hardware.** Pin numbers, RGB timings and the ST7701 init
 table come from the Waveshare wiki and the ESP32_Display_Panel board file
@@ -30,7 +33,7 @@ assumptions" at the bottom before blaming the code.
 | `platformio.ini` | pioarduino platform, `esp32-s3-devkitc-1`, `qio_opi` (16 MB flash + OPI PSRAM), USB CDC on boot |
 | `src/main.cpp` | board bring-up: TCA9554 reset/CS lines, 3-wire SPI init table, `Arduino_ESP32RGBPanel` + `Arduino_RGB_Display`, PSRAM canvas, backlight PWM, NVS side, main loop |
 | `src/eye.h/.cpp` | expression table + procedural renderer (sclera, iris, pupil/heart, highlights, lids, blink, saccades), 480 px geometry |
-| `src/protocol.h` | JSON-lines parser (ArduinoJson 7): state, `ping`, `side`, `bl`; reports `fw` `0.2.0` |
+| `src/protocol.h` | JSON-lines parser (ArduinoJson 7): state, `ping`, `side`, `bl`; reports `fw` `0.3.0` |
 | `dist/eye-merged.bin` | output of `scripts/build_eyes.sh`, flashable at `0x0` |
 
 ## Build
@@ -64,7 +67,7 @@ waits 3 s for the board to reboot and re-enumerate, then sends `{"cmd":"side","v
 
 ```
 side -> {"ok":1,"side":"L"}
-ping -> {"ok":1,"side":"L","fps":40,"fw":"0.2.0"}
+ping -> {"ok":1,"side":"L","fps":40,"fw":"0.3.0"}
 ```
 
 The side is stored in NVS (`Preferences` namespace `eye`, key `side`) and survives reflashing unless
@@ -110,16 +113,16 @@ Waveshare's other tip: press RESET for more than a second and wait for the PC to
 | send | reply |
 |---|---|
 | `{"e":"happy","gx":0.3,"gy":-0.1,"blink":false,"p":1.0}` | none (state update, <= 20 Hz; missing keys keep the previous value) |
-| `{"cmd":"ping"}` | `{"ok":1,"side":"L","fps":40,"fw":"0.2.0"}` |
+| `{"cmd":"ping"}` | `{"ok":1,"side":"L","fps":40,"fw":"0.3.0"}` |
 | `{"cmd":"side","value":"L"}` | `{"ok":1,"side":"L"}` (stored in NVS) |
 | `{"cmd":"bl","value":800}` | `{"ok":1,"bl":800}` (backlight 0..1023) |
 | anything else | `{"err":"unknown"}`; unparsable line: `{"err":"json"}` |
 
 Expressions: `neutral curious happy love sleepy surprised sad angry_playful` (unknown names render as
-neutral). `gx`/`gy` are -1..1 (80 px of travel), `p` is pupil dilation 0.3..2, `blink:true` is an
+neutral). `gx`/`gy` are -1..1 (64 px of travel), `p` is pupil dilation 0.3..2, `blink:true` is an
 edge (one blink when it goes false -> true). The firmware smooths every parameter (`cur += (target -
 cur) * 0.25` per frame), auto-blinks every `blinkRateMs` +/-30 % (120 ms close, 100 ms open) and adds
-+/-8 px saccades every 1-3 s. If the link goes quiet the last state is kept.
++/-7 px saccades every 1-3 s. If the link goes quiet the last state is kept.
 
 Quick manual test: `uv run python -m serial.tools.miniterm /dev/cu.usbmodem101 115200`, then type a
 line and press Enter.
