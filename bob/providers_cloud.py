@@ -34,11 +34,12 @@ TTS_INSTRUCTIONS = (
 
 # Audio helpers live in bob.voicefx; re-exported here for the phrase renderer and tests.
 _to_int16, _to_float = voicefx.to_int16, voicefx.to_float
-wav_from_pcm16, resample, pitch_shift_wav, voice_fx = (
+wav_from_pcm16, resample, pitch_shift_wav, voice_fx, normalize = (
     voicefx.wav_from_pcm16,
     voicefx.resample,
     voicefx.pitch_shift_wav,
     voicefx.voice_fx,
+    voicefx.normalize,
 )
 
 
@@ -241,19 +242,52 @@ class OpenAITTS:
     def _postprocess(self, raw: bytes) -> bytes:
         samples = resample(pcm16_from_bytes(raw), OPENAI_PCM_SR, TARGET_SR)
         samples = voice_fx(samples, TARGET_SR, self.pitch_semitones, self.speed)
-        return wav_from_pcm16(samples, TARGET_SR)
+        return wav_from_pcm16(normalize(samples), TARGET_SR)
 
 
 # --- ElevenLabs -------------------------------------------------------------
 
 
-class ElevenLabsTTS:
-    """Text to speech via `client.text_to_speech.convert(output_format="pcm_16000")`."""
+# Low stability and some style make the clone giggly and bouncy instead of reading flatly.
+EXPRESSIVE_VOICE_SETTINGS = {
+    "stability": 0.35,
+    "similarity_boost": 0.8,
+    "style": 0.45,
+    "use_speaker_boost": True,
+}
 
-    def __init__(self, client, voice_id: str, model_id: str = "eleven_flash_v2_5"):
+
+def _voice_settings(values: dict):
+    """The SDK's VoiceSettings model when importable, else the plain dict (fakes and raw HTTP)."""
+    try:
+        from elevenlabs import VoiceSettings
+    except ImportError:
+        return dict(values)
+    return VoiceSettings(**values)
+
+
+class ElevenLabsTTS:
+    """Text to speech via `client.text_to_speech.convert(output_format="pcm_16000")`, then voice effects.
+
+    For a voice cloned from a real Minion recording set pitch 0 and speed 1.0; the clone already sounds
+    like one. The defaults suit an ordinary human voice.
+    """
+
+    def __init__(
+        self,
+        client,
+        voice_id: str,
+        model_id: str = "eleven_flash_v2_5",
+        pitch_semitones: float = voicefx.DEFAULT_PITCH_SEMITONES,
+        speed: float = voicefx.DEFAULT_SPEED,
+        voice_settings: dict | None = None,
+    ):
         self.client = client
         self.voice_id = voice_id
         self.model_id = model_id
+        self.pitch_semitones = pitch_semitones
+        self.speed = speed
+        self.voice_settings = {**EXPRESSIVE_VOICE_SETTINGS, **(voice_settings or {})}
 
     async def synthesize(self, text: str) -> bytes:
         request = {
@@ -261,6 +295,7 @@ class ElevenLabsTTS:
             "text": text,
             "model_id": self.model_id,
             "output_format": "pcm_16000",
+            "voice_settings": _voice_settings(self.voice_settings),
         }
 
         def convert_sync():
@@ -277,7 +312,10 @@ class ElevenLabsTTS:
             )
         else:
             raw = await asyncio.to_thread(convert_sync)
-        return wav_from_pcm16(pcm16_from_bytes(raw), TARGET_SR)
+        samples = pcm16_from_bytes(raw)
+        if self.pitch_semitones or self.speed != 1.0:
+            samples = await asyncio.to_thread(voice_fx, samples, TARGET_SR, self.pitch_semitones, self.speed)
+        return wav_from_pcm16(normalize(samples), TARGET_SR)
 
 
 # --- Fallback ---------------------------------------------------------------
@@ -337,14 +375,30 @@ def build_providers(settings):
     async_client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
     stt = OpenAISTT(sync_client, settings.stt_model)
     llm = OpenAILLM(async_client, settings.llm_model)
-    tts = OpenAITTS(
-        async_client,
-        settings.tts_model,
-        settings.tts_voice,
-        TTS_INSTRUCTIONS,
-        settings.pitch_semitones,
-        settings.speed,
-    )
+    if settings.tts_provider == "elevenlabs":
+        if not settings.elevenlabs_api_key:
+            raise ValueError("BOB_TTS_PROVIDER=elevenlabs requires ELEVENLABS_API_KEY")
+        if not settings.elevenlabs_voice_id:
+            raise ValueError(
+                "BOB_TTS_PROVIDER=elevenlabs requires ELEVENLABS_VOICE_ID (see scripts/clone_voice.py)"
+            )
+        from elevenlabs import ElevenLabs
+
+        tts = ElevenLabsTTS(
+            ElevenLabs(api_key=settings.elevenlabs_api_key),
+            settings.elevenlabs_voice_id,
+            pitch_semitones=settings.pitch_semitones,
+            speed=settings.speed,
+        )
+    else:
+        tts = OpenAITTS(
+            async_client,
+            settings.tts_model,
+            settings.tts_voice,
+            TTS_INSTRUCTIONS,
+            settings.pitch_semitones,
+            settings.speed,
+        )
     if settings.local_fallback:
         stt = FallbackSTT(stt, LocalSTT())
         tts = FallbackTTS(tts, LocalTTS())

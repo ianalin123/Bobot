@@ -82,3 +82,28 @@ def test_local_tts_defaults_come_from_voicefx(monkeypatch):
     tts = LocalTTS()
     assert tts.pitch_semitones == voicefx.DEFAULT_PITCH_SEMITONES
     assert tts.speed == voicefx.DEFAULT_SPEED
+
+
+def test_normalize_pushes_peak_to_full_scale_without_clipping():
+    quiet = tone(0.25) // 4  # peak about 0.125
+    out = voicefx.normalize(quiet)
+    assert out.dtype == np.int16
+    peak = np.abs(out.astype(np.int32)).max() / 32768.0
+    assert 0.95 <= peak <= 0.99
+    assert np.array_equal(voicefx.normalize(np.zeros(100, np.int16)), np.zeros(100, np.int16))
+    already = voicefx.normalize(out)
+    assert abs(np.abs(already.astype(np.int32)).max() - np.abs(out.astype(np.int32)).max()) <= 1
+
+
+def test_normalize_wav_keeps_rate_and_raises_level():
+    wav = wav_from_pcm16(tone(0.25, rate=22050) // 8, 22050)
+    out = voicefx.normalize_wav(wav)
+    samples, rate = voicefx.read_wav(out)
+    assert rate == 22050 and 0.95 <= np.abs(samples).max() <= 0.99
+
+
+def test_local_tts_postprocess_output_is_full_scale(monkeypatch):
+    monkeypatch.setenv("BOB_PITCH_SEMITONES", "0")
+    monkeypatch.setenv("BOB_SPEED", "1")
+    out = LocalTTS().postprocess(wav_from_pcm16(tone(0.5, rate=22050) // 8, 22050))
+    assert 0.9 <= np.abs(decode_wav(out)).max() <= 0.99

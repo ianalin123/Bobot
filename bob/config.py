@@ -8,6 +8,7 @@ from .voicefx import DEFAULT_PITCH_SEMITONES, DEFAULT_SPEED
 
 MODES = ("sim", "cloud", "local")
 HARDWARE = ("sim", "real")
+TTS_PROVIDERS = ("openai", "elevenlabs")
 
 
 def _bool(value: str | None, default: bool = False) -> bool:
@@ -32,6 +33,7 @@ class Settings:
     stt_model: str = "gpt-4o-mini-transcribe"
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "ash"
+    tts_provider: str = "openai"  # live speech: openai (gpt-4o-mini-tts) or elevenlabs (cloned voice)
     pitch_semitones: float = DEFAULT_PITCH_SEMITONES
     speed: float = DEFAULT_SPEED
     elevenlabs_voice_id: str = ""
@@ -59,6 +61,9 @@ class Settings:
             raise ValueError(f"BOB_MODE must be one of {MODES}, got {mode!r}")
         if hardware not in HARDWARE:
             raise ValueError(f"BOB_HARDWARE must be one of {HARDWARE}, got {hardware!r}")
+        tts_provider = env.get("BOB_TTS_PROVIDER", "openai").strip().lower() or "openai"
+        if tts_provider not in TTS_PROVIDERS:
+            raise ValueError(f"BOB_TTS_PROVIDER must be one of {TTS_PROVIDERS}, got {tts_provider!r}")
         openai_key = env.get("OPENAI_API_KEY", "").strip()
         if mode == "cloud" and not openai_key:
             raise ValueError("BOB_MODE=cloud requires OPENAI_API_KEY")
@@ -71,6 +76,7 @@ class Settings:
             stt_model=env.get("BOB_STT_MODEL", cls.stt_model),
             tts_model=env.get("BOB_TTS_MODEL", cls.tts_model),
             tts_voice=env.get("BOB_TTS_VOICE", cls.tts_voice),
+            tts_provider=tts_provider,
             pitch_semitones=float(env.get("BOB_PITCH_SEMITONES", cls.pitch_semitones)),
             speed=float(env.get("BOB_SPEED", cls.speed)),
             elevenlabs_voice_id=env.get("ELEVENLABS_VOICE_ID", ""),

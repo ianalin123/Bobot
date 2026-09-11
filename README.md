@@ -43,6 +43,7 @@ Optional settings are in `.env.example`. To use a local `.env`, launch with `--e
 ## Try it
 
 1. Say/type “Hello Bob,” then “Please give me a banana.” Conversation uses the local model; exact banana/stop commands directly invoke the same behavior as the buttons. Other phrasings can use model tool calls but are less reliable.
+   Bob answers in understandable English with a Minion tone and a few Minionese fillers by default (the persona in `bob/persona.py` teaches the model the words, sound rules and examples). Say “speak Minionese” for full gibberish, “speak English” for none, or “speak normally” to return; the level lasts for the session.
 2. In hands-free mode, start speaking while Bob talks. Playback stops locally before transcription finishes; old inference and queued speech are cancelled. Short noise spikes are filtered.
 3. If speaker echo or room chatter causes interruptions, use headphones or switch to **Push to talk**. Hold the button with pointer, Space, or Enter. Microphone permission is opt-in.
 4. Click **Confirm handoff** after presentation; this is a manual simulated recipient event. Reload before another delivery.
@@ -55,7 +56,7 @@ Optional settings are in `.env.example`. To use a local `.env`, launch with `--e
 | --- | --- |
 | faster-whisper `base.en`, CPU int8 STT | Physical mic/speaker performance in your room still needs testing |
 | Ollama `qwen3:4b-instruct`, streamed responses and tool calls | Camera, identification, LinkedIn lookup, browser actions |
-| macOS local TTS, sentence-by-sentence WAV playback | Character-quality voice; Linux/Piper adapter has not been device-tested |
+| macOS local TTS pitched up and sped up like a Minion (`BOB_PITCH_SEMITONES`, `BOB_SPEED`), sentence-by-sentence WAV playback | Linux/Piper adapter has not been device-tested |
 | Cancellation, playback acknowledgements, bounded history | Wheel navigation, motor firmware, real arm, grasp and handoff sensing |
 | Backend behavior state machine with action timeouts | Adapter completion is a timer; this is **not physics, CAD, torque, or stability validation** |
 

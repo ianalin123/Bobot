@@ -4,7 +4,7 @@ import json
 import re
 import time
 
-from .persona import LEVEL_REPLIES, SONG_LYRICS, SYSTEM_PROMPT, minionese_instruction
+from .persona import DEFAULT_LEVEL, LEVEL_REPLIES, SONG_LYRICS, SYSTEM_PROMPT, minionese_instruction
 
 EXPRESSIONS = ["neutral", "curious", "happy", "love", "sleepy", "surprised", "sad", "angry_playful"]
 ROBOT_TOOLS = {"offer_banana", "stop_motion"}
@@ -123,7 +123,7 @@ class VoiceSession:
         self.heard = []
         self.started_segment = None
         self.generation_done = False
-        self.minionese = "full"
+        self.minionese = DEFAULT_LEVEL
 
     async def emit(self, kind, **values):
         await self.send({"type": kind, "request_id": self.request_id, **values})

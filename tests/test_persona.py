@@ -144,3 +144,10 @@ def test_system_prompt_carries_the_minionese_guide():
     assert sum(word in guide for word in persona.MINIONESE) >= 20
     assert "example" in guide
     assert "never" in guide  # the insult is named only to forbid it
+
+
+def test_default_level_is_understandable_english_with_minion_fillers():
+    assert persona.DEFAULT_LEVEL == "mixed"
+    mixed = persona.minionese_instruction("mixed").lower()
+    assert "english" in mixed and "filler" in mixed and "understand" in mixed
+    assert "hehehe" in mixed and "bello" in mixed

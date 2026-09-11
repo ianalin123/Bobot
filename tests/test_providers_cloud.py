@@ -293,7 +293,7 @@ async def test_elevenlabs_tts_wraps_pcm16000_into_wav():
             return iter([data[:1000], data[1000:]])
 
     client = SimpleNamespace(text_to_speech=Speech())
-    tts = ElevenLabsTTS(client, "voice123")
+    tts = ElevenLabsTTS(client, "voice123", pitch_semitones=0.0, speed=1.0)
     samples = decode_wav(await tts.synthesize("Bello!"))
     assert len(samples) == 8000
     assert calls[0]["output_format"] == "pcm_16000" and calls[0]["voice_id"] == "voice123"
@@ -568,3 +568,93 @@ def test_build_providers_passes_speed_to_tts(monkeypatch):
     monkeypatch.setitem(sys.modules, "openai", fake_openai)
     _, _, tts = build_providers(Settings(mode="cloud", openai_api_key="sk-test", speed=1.3))
     assert tts.speed == 1.3
+
+
+async def test_elevenlabs_tts_applies_voice_fx():
+    pytest.importorskip("librosa")
+
+    class Speech:
+        def convert(self, **kwargs):
+            return iter([pcm_sine(seconds=1.0, rate=16000)])
+
+    tts = ElevenLabsTTS(SimpleNamespace(text_to_speech=Speech()), "v", pitch_semitones=0.0, speed=2.0)
+    samples = decode_wav(await tts.synthesize("Bello!"))
+    assert abs(len(samples) - 8000) <= 400
+
+
+def test_build_providers_can_use_elevenlabs_for_live_tts(monkeypatch):
+    import sys
+
+    from bob.config import Settings
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.OpenAI = lambda api_key: SimpleNamespace(kind="sync", key=api_key)
+    fake_openai.AsyncOpenAI = lambda api_key: SimpleNamespace(kind="async", key=api_key)
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    fake_eleven = types.ModuleType("elevenlabs")
+    fake_eleven.ElevenLabs = lambda api_key: SimpleNamespace(kind="eleven", key=api_key)
+    monkeypatch.setitem(sys.modules, "elevenlabs", fake_eleven)
+
+    settings = Settings(
+        mode="cloud",
+        openai_api_key="sk-test",
+        tts_provider="elevenlabs",
+        elevenlabs_api_key="el-test",
+        elevenlabs_voice_id="v1",
+        pitch_semitones=2.0,
+        speed=1.1,
+    )
+    _, _, tts = build_providers(settings)
+    assert isinstance(tts, ElevenLabsTTS) and tts.client.key == "el-test" and tts.voice_id == "v1"
+    assert tts.pitch_semitones == 2.0 and tts.speed == 1.1
+
+    with pytest.raises(ValueError, match="ELEVENLABS_VOICE_ID"):
+        build_providers(
+            Settings(mode="cloud", openai_api_key="sk", tts_provider="elevenlabs", elevenlabs_api_key="el")
+        )
+    with pytest.raises(ValueError, match="ELEVENLABS_API_KEY"):
+        build_providers(
+            Settings(mode="cloud", openai_api_key="sk", tts_provider="elevenlabs", elevenlabs_voice_id="v")
+        )
+
+
+async def test_elevenlabs_tts_sends_expressive_voice_settings():
+    calls = []
+
+    class Speech:
+        def convert(self, **kwargs):
+            calls.append(kwargs)
+            return iter([pcm_sine(seconds=0.1, rate=16000)])
+
+    tts = ElevenLabsTTS(SimpleNamespace(text_to_speech=Speech()), "v", pitch_semitones=0.0, speed=1.0)
+    await tts.synthesize("Bello!")
+    settings = calls[0]["voice_settings"]
+    get = settings.get if isinstance(settings, dict) else lambda key: getattr(settings, key)
+    assert 0.0 <= get("stability") <= 0.5  # low stability: more expressive, more Minion
+    assert get("style") >= 0.3 and get("similarity_boost") >= 0.7
+    custom = ElevenLabsTTS(
+        SimpleNamespace(text_to_speech=Speech()),
+        "v",
+        pitch_semitones=0.0,
+        speed=1.0,
+        voice_settings={"stability": 0.9},
+    )
+    await custom.synthesize("Bello!")
+    settings = calls[1]["voice_settings"]
+    get = settings.get if isinstance(settings, dict) else lambda key: getattr(settings, key)
+    assert get("stability") == 0.9
+
+
+async def test_cloud_tts_outputs_are_full_scale():
+    quiet = (np.frombuffer(pcm_sine(seconds=0.5, rate=24000), dtype="<i2") // 8).astype("<i2").tobytes()
+    tts = OpenAITTS(FakeOpenAI(pcm=quiet), "m", "ash", "", pitch_semitones=0.0, speed=1.0)
+    assert 0.9 <= np.abs(decode_wav(await tts.synthesize("Bello!"))).max() <= 0.99
+
+    class Speech:
+        def convert(self, **kwargs):
+            return iter(
+                [(np.frombuffer(pcm_sine(seconds=0.5, rate=16000), dtype="<i2") // 8).astype("<i2").tobytes()]
+            )
+
+    eleven = ElevenLabsTTS(SimpleNamespace(text_to_speech=Speech()), "v", pitch_semitones=0.0, speed=1.0)
+    assert 0.9 <= np.abs(decode_wav(await eleven.synthesize("Bello!"))).max() <= 0.99

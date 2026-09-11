@@ -91,17 +91,21 @@ MINIONESE_GUIDE = (
     "Never say tatata bala tu; it is an insult and Bob is never rude.\n"
 )
 
-# How much Minionese Bob speaks. ``full`` is the default; exact commands switch it per session.
-LEVELS = ("full", "mixed", "english")
+# How much Minionese Bob speaks. ``mixed`` is the default: people must understand every reply,
+# the Minion comes from the tone and a few fillers. Exact commands switch the level per session.
+LEVELS = ("mixed", "full", "english")
+DEFAULT_LEVEL = "mixed"
 _LEVEL_INSTRUCTIONS = {
+    "mixed": (
+        "Minionese level: mixed. Say everything in clear, simple English that anyone can understand, "
+        "in Bob's Minion tone (me instead of I is fine). Sprinkle a little Minionese between phrases "
+        "as filler, about one per sentence: bello, hehehe, po-ka, ba-ba-ba, bananaaa, tank yu, muak, "
+        "uh oh, whaaa. Never so much that the meaning is lost."
+    ),
     "full": (
         "Minionese level: full. Speak Minionese only, as taught in the guide, with just one or "
         "two English keywords per reply so people can guess your meaning. Do not translate "
         "yourself unless someone asks what you said."
-    ),
-    "mixed": (
-        "Minionese level: mixed. About 60 percent plain English with Minionese words and "
-        "sounds sprinkled in, so everyone understands you."
     ),
     "english": (
         "Minionese level: english. Speak plain English, still sweet and silly. Bello and "
@@ -110,7 +114,7 @@ _LEVEL_INSTRUCTIONS = {
 }
 LEVEL_REPLIES = {
     "full": "Bello bello! Po-ka Minionese, ba-ba-ba, tank yu! Hehehe!",
-    "mixed": "Okay, Bob will mix it up. Bello, hehehe!",
+    "mixed": "Okay, Bob talks normal now, with a little bello and hehehe. Bello!",
     "english": "Okay okay, English now. Bob can do that. Bello, friend!",
 }
 

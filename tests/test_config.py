@@ -46,3 +46,10 @@ def test_voice_fx_settings():
     assert s.speed == voicefx.DEFAULT_SPEED
     s = Settings.from_env({"BOB_PITCH_SEMITONES": "2.5", "BOB_SPEED": "1.3"})
     assert s.pitch_semitones == 2.5 and s.speed == 1.3
+
+
+def test_tts_provider_setting():
+    assert Settings.from_env({}).tts_provider == "openai"
+    assert Settings.from_env({"BOB_TTS_PROVIDER": "elevenlabs"}).tts_provider == "elevenlabs"
+    with pytest.raises(ValueError):
+        Settings.from_env({"BOB_TTS_PROVIDER": "banana"})

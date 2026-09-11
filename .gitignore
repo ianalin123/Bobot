@@ -24,3 +24,5 @@ assets/songs/
 
 # generated phrase caches (any provider)
 assets/phrases*/
+# film audio dropped in for voice cloning (rights not granted; keep out of git)
+assets/*.mp3

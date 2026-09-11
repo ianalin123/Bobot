@@ -13,6 +13,8 @@ from typing import Any, Awaitable, Callable
 
 import numpy as np
 
+from . import voicefx
+
 log = logging.getLogger("bob.audio")
 
 RATE = 16000
@@ -252,7 +254,8 @@ class AudioIO:
         except Exception as exc:
             log.error("dropping segment %s: undecodable WAV (%s)", segment_id, exc)
             return
-        self.queue.put_nowait((segment_id, samples))
+        # Everything Bob says (live TTS, cached phrases, songs) leaves the speaker at full scale.
+        self.queue.put_nowait((segment_id, voicefx.normalize(samples)))
 
     def cancel_playback(self):
         """Drop queued and current audio; the next output block is silence."""

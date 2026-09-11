@@ -88,6 +88,10 @@ BOB_CONSOLE_TOKEN=<pick a word>
 
 Leave `BOB_SERVO_PORT` / `BOB_EYE_PORTS` at defaults for now; step 5 tells you the real ports.
 
+Voice: Bob speaks understandable English in a Minion tone with light Minionese fillers by default (say "speak Minionese" for full gibberish or "speak English" for none; per session). The Minion sound is `BOB_TTS_VOICE` (OpenAI voice) plus `BOB_PITCH_SEMITONES` and `BOB_SPEED`; tune them with `scripts/voice_samples.py` and listen in `artifacts/voice-samples/openai/`. Two phrase caches can be bundled: `assets/phrases` (ElevenLabs "Jessica") and `assets/phrases-openai` (the same OpenAI voice as live speech, rendered with `scripts/render_phrases.py --provider openai --out assets/phrases-openai`); pick one with `BOB_PHRASES_DIR`. Re-render the cache whenever you change the voice settings so greetings match the conversation.
+
+Cloned voice (ElevenLabs, needs a paid plan with instant voice cloning): isolate the speech from music first, then `uv run python scripts/clone_voice.py --name "Bob Minion" <recording.mp3>`. It prints the `.env` lines (`BOB_TTS_PROVIDER=elevenlabs`, `ELEVENLABS_VOICE_ID=...`; pitch 0 and speed 1 when the clone is already a Minion) and a test clip in `artifacts/voice-samples/elevenlabs/`. Character budget: live replies and the phrase cache both count against the ElevenLabs plan.
+
 ## 5. Doctor
 
 ```sh
@@ -114,7 +118,7 @@ You know it worked when: every P0 row is green.
 
 ```sh
 arecord -d 3 -f S16_LE -r 16000 -c 2 /tmp/t.wav && aplay /tmp/t.wav
-alsamixer                       # F6 to pick the ReSpeaker, raise PCM to ~80%
+alsamixer                       # F6 to pick the ReSpeaker, raise PCM to 100% (clips are already peak-normalized in software)
 sudo alsactl store
 ```
 

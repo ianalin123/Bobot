@@ -304,7 +304,14 @@ class Runtime:
             return {
                 "llm": {"ready": True, "model": settings.llm_model, "provider": "openai"},
                 "stt": {"ready": True, "model": settings.stt_model, "provider": engine},
-                "tts": {"ready": True, "engine": f"{engine}:{settings.tts_voice}"},
+                "tts": {
+                    "ready": True,
+                    "engine": (
+                        f"elevenlabs:{settings.elevenlabs_voice_id}"
+                        if settings.tts_provider == "elevenlabs"
+                        else f"{engine}:{settings.tts_voice}"
+                    ),
+                },
             }
         return {
             "llm": {"ready": False},

@@ -370,3 +370,14 @@ async def test_robot_client_ignores_stale_events_and_bounds_history():
     await robot.session.task
     assert robot.request_id == 1 and len(fake.played) == 2
     await robot.session.interrupt(robot.request_id)
+
+
+async def test_play_normalizes_quiet_clips_to_full_scale(monkeypatch):
+    """Cached phrases and songs go through play() too, so loudness is fixed here for the speaker."""
+    fake_sounddevice(monkeypatch, DEVICES)
+    audio = AudioIO(Settings())
+    quiet = (tone(0.2) * 0.1).astype(np.float32)
+    audio.play("p", encode_wav(quiet))
+    _, samples = audio.queue.get_nowait()
+    assert samples.dtype == np.int16
+    assert 0.95 <= np.abs(samples.astype(np.int32)).max() / 32768.0 <= 0.99

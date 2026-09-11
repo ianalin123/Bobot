@@ -200,7 +200,7 @@ async def test_llm_gets_the_minion_persona_prompt_with_robot_state():
     system = llm.calls[0][0]
     assert system["role"] == "system"
     assert system["content"].startswith(persona.SYSTEM_PROMPT)
-    assert persona.minionese_instruction("full") in system["content"]  # Bob speaks Minionese by default
+    assert persona.minionese_instruction(persona.DEFAULT_LEVEL) in system["content"]
     assert "Robot state:" in system["content"]
 
 
@@ -219,7 +219,7 @@ async def test_speak_minionese_switches_level_without_the_llm_and_changes_the_pr
 
     llm = RecordingLLM()
     voice, events = session(llm=llm)
-    assert voice.minionese == "full"
+    assert voice.minionese == persona.DEFAULT_LEVEL == "mixed"
     await voice.start(1, text="speak english")
     await voice.task
     assert voice.minionese == "english"

@@ -14,6 +14,7 @@ import numpy as np
 DEFAULT_PITCH_SEMITONES = 6.0
 DEFAULT_SPEED = 1.15
 TARGET_SR = 16000
+PEAK = 0.97  # normalize every clip to this peak: as loud as possible without clipping
 
 
 def to_int16(samples: np.ndarray) -> np.ndarray:
@@ -72,6 +73,26 @@ def voice_fx(samples: np.ndarray, sr: int, semitones: float, speed: float) -> np
     return to_int16(out) if as_int else out
 
 
+def normalize(samples: np.ndarray, peak: float = PEAK) -> np.ndarray:
+    """Scale so the loudest sample sits at ``peak`` of full scale. Silence stays silence."""
+    samples = np.asarray(samples)
+    if len(samples) == 0:
+        return samples
+    as_int = samples.dtype.kind != "f"
+    floats = to_float(samples)
+    current = float(np.abs(floats).max())
+    if current <= 0.0:
+        return samples
+    out = (floats * (peak / current)).astype(np.float32)
+    return to_int16(out) if as_int else out
+
+
+def normalize_wav(data: bytes) -> bytes:
+    """Any 16-bit PCM WAV -> the same rate, mono, peak-normalized."""
+    samples, rate = read_wav(data)
+    return wav_from_pcm16(normalize(samples), rate)
+
+
 def pitch_shift_wav(pcm16: np.ndarray, sr: int, semitones: float) -> np.ndarray:
     """Pitch only (kept for the phrase renderer and older callers)."""
     return voice_fx(pcm16, sr, semitones, 1.0)
@@ -102,7 +123,7 @@ def read_wav(data: bytes) -> tuple[np.ndarray, int]:
 
 
 def minionize_wav(data: bytes, semitones: float, speed: float) -> bytes:
-    """Any WAV -> 16 kHz mono WAV with the Minion effects applied."""
+    """Any WAV -> 16 kHz mono WAV with the Minion effects applied and full-scale loudness."""
     samples, rate = read_wav(data)
     samples = resample(samples, rate, TARGET_SR)
-    return wav_from_pcm16(voice_fx(samples, TARGET_SR, semitones, speed), TARGET_SR)
+    return wav_from_pcm16(normalize(voice_fx(samples, TARGET_SR, semitones, speed)), TARGET_SR)
