@@ -166,16 +166,42 @@ class FaceEngine:
             image = cv2.resize(image, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
         return image
 
-    def embed_file(self, path: Path) -> np.ndarray | None:
-        """Embedding of the largest face in an image file, or None if no face is found."""
-        image = self._read_image(path)
-        if image is None:
-            return None
+    def embed_image(self, image: np.ndarray) -> np.ndarray | None:
+        """Embedding of the largest face in a frame, or None."""
         faces = self.detect_faces(image)
         if len(faces) == 0:
             return None
         biggest = faces[int(np.argmax(faces[:, 2] * faces[:, 3]))]
         return self.embed(image, biggest)
+
+    def embed_file(self, path: Path) -> np.ndarray | None:
+        """Embedding of the largest face in an image file, or None if no face is found."""
+        image = self._read_image(path)
+        if image is None:
+            return None
+        return self.embed_image(image)
+
+    def embed_file_augmented(self, path: Path) -> list[np.ndarray]:
+        """Embeddings of the photo plus mild variants (mirror, darker, brighter, small tilts) so one
+        portrait covers more lighting and head angles. Variants where no face is found are skipped."""
+        import cv2
+
+        image = self._read_image(path)
+        if image is None:
+            return []
+        h, w = image.shape[:2]
+        variants = [image, cv2.flip(image, 1)]
+        variants.append(cv2.convertScaleAbs(image, alpha=0.6, beta=-10))  # darker
+        variants.append(cv2.convertScaleAbs(image, alpha=1.3, beta=25))  # brighter
+        for angle in (-12, 12):
+            m = cv2.getRotationMatrix2D((w / 2, h / 2), angle, 1.0)
+            variants.append(cv2.warpAffine(image, m, (w, h), borderMode=cv2.BORDER_REPLICATE))
+        out = []
+        for v in variants:
+            vec = self.embed_image(v)
+            if vec is not None:
+                out.append(vec)
+        return out
 
     def enroll_dir(
         self,
@@ -192,12 +218,13 @@ class FaceEngine:
             images = sorted(p for p in person_dir.iterdir() if p.suffix.lower() in IMAGE_SUFFIXES)
             vectors = []
             for image in images:
-                vec = self.embed_file(image)
-                if vec is None:
+                vecs = self.embed_file_augmented(image)
+                if not vecs:
                     say(f"warning: no face found in {image}")
                     continue
-                vectors.append(vec)
-            say(f"{person_dir.name}: {len(vectors)}/{len(images)} images used")
+                vectors.extend(vecs)
+            used = sum(1 for image in images if self.embed_file(image) is not None)
+            say(f"{person_dir.name}: {used}/{len(images)} images used ({len(vectors)} views)")
             if vectors:
                 people[person_dir.name] = _normalize(np.mean(np.stack(vectors), axis=0))
         self._set_people(people)
