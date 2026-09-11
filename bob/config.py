@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Mapping
 
+from .voicefx import DEFAULT_PITCH_SEMITONES, DEFAULT_SPEED
+
 MODES = ("sim", "cloud", "local")
 HARDWARE = ("sim", "real")
 
@@ -30,7 +32,8 @@ class Settings:
     stt_model: str = "gpt-4o-mini-transcribe"
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "ash"
-    pitch_semitones: float = 5.0
+    pitch_semitones: float = DEFAULT_PITCH_SEMITONES
+    speed: float = DEFAULT_SPEED
     elevenlabs_voice_id: str = ""
     servo_port: str = "/dev/ttyACM0"
     eye_ports: tuple[str, ...] = ("/dev/ttyACM1", "/dev/ttyACM2")
@@ -69,6 +72,7 @@ class Settings:
             tts_model=env.get("BOB_TTS_MODEL", cls.tts_model),
             tts_voice=env.get("BOB_TTS_VOICE", cls.tts_voice),
             pitch_semitones=float(env.get("BOB_PITCH_SEMITONES", cls.pitch_semitones)),
+            speed=float(env.get("BOB_SPEED", cls.speed)),
             elevenlabs_voice_id=env.get("ELEVENLABS_VOICE_ID", ""),
             servo_port=env.get("BOB_SERVO_PORT", cls.servo_port),
             eye_ports=_ports(env.get("BOB_EYE_PORTS"), cls.eye_ports),

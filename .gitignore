@@ -13,7 +13,7 @@ node_modules/
 .DS_Store
 *.log
 bundle/
-assets/phrases/
+
 people/*
 !people/embeddings.npz
 config/poses.json
@@ -21,3 +21,6 @@ config/calibration.json
 firmware/eye/.pio/
 .claude/
 assets/songs/
+
+# generated phrase caches (any provider)
+assets/phrases*/

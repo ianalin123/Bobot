@@ -36,3 +36,13 @@ def test_real_hardware_flag_and_bools():
 def test_invalid_mode_rejected():
     with pytest.raises(ValueError):
         Settings.from_env({"BOB_MODE": "banana"})
+
+
+def test_voice_fx_settings():
+    from bob import voicefx
+
+    s = Settings.from_env({})
+    assert s.pitch_semitones == voicefx.DEFAULT_PITCH_SEMITONES
+    assert s.speed == voicefx.DEFAULT_SPEED
+    s = Settings.from_env({"BOB_PITCH_SEMITONES": "2.5", "BOB_SPEED": "1.3"})
+    assert s.pitch_semitones == 2.5 and s.speed == 1.3

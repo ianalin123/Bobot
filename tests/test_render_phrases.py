@@ -190,3 +190,19 @@ def test_pick_voice_prefers_hint_then_first():
     assert render_phrases.pick_voice(voices, "nobody") == "r1"
     with pytest.raises(RuntimeError):
         render_phrases.pick_voice([], "josh")
+
+
+def test_openai_synthesizer_uses_the_live_voice_fx_settings(monkeypatch):
+    import types
+    from types import SimpleNamespace
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.AsyncOpenAI = lambda api_key: SimpleNamespace(kind="async", key=api_key)
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("BOB_PITCH_SEMITONES", "2")
+    monkeypatch.setenv("BOB_SPEED", "1.3")
+    synth, model = render_phrases.build_synthesizer("openai", "unused")
+    assert synth.__self__.pitch_semitones == 2.0 and synth.__self__.speed == 1.3
+    assert model.startswith("gpt-4o-mini-tts/")
+    assert render_phrases.default_pitch("openai") == 0.0  # OpenAITTS applies its own effects

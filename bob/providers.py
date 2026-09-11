@@ -15,6 +15,8 @@ from urllib.parse import urlparse
 import httpx
 import numpy as np
 
+from . import voicefx
+
 ROOT = Path(__file__).resolve().parent.parent
 MAX_AUDIO_BYTES = 1_000_000
 
@@ -126,6 +128,13 @@ class LocalTTS:
         self.voice = os.getenv("BOB_MAC_VOICE", "Samantha")
         self.piper_model = os.getenv("BOB_PIPER_MODEL", "")
         self.piper = os.getenv("BOB_PIPER_EXECUTABLE", "piper")
+        # Same Minion effects as the cloud voice, so the Mac workbench sounds like Bob too.
+        self.pitch_semitones = float(os.getenv("BOB_PITCH_SEMITONES", voicefx.DEFAULT_PITCH_SEMITONES))
+        self.speed = float(os.getenv("BOB_SPEED", voicefx.DEFAULT_SPEED))
+
+    def postprocess(self, wav_bytes):
+        """Engine output (any rate) -> 16 kHz mono WAV, pitched up and sped up."""
+        return voicefx.minionize_wav(wav_bytes, self.pitch_semitones, self.speed)
 
     def ready(self):
         return (
@@ -167,7 +176,7 @@ class LocalTTS:
                 _, error = await asyncio.wait_for(process.communicate(stdin), timeout=20)
                 if process.returncode:
                     raise RuntimeError(f"Local TTS failed: {error.decode(errors='replace')[:160]}")
-                return output.read_bytes()
+                return await asyncio.to_thread(self.postprocess, output.read_bytes())
             except BaseException:
                 if process.returncode is None:
                     process.kill()

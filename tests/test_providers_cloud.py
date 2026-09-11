@@ -234,7 +234,7 @@ def pcm_sine(seconds=0.5, rate=24000, hz=440.0):
 
 async def test_openai_tts_returns_16k_wav_and_passes_instructions():
     client = FakeOpenAI(pcm=pcm_sine(seconds=0.5))
-    tts = OpenAITTS(client, "gpt-4o-mini-tts", "ash", "Talk like a minion.", pitch_semitones=0.0)
+    tts = OpenAITTS(client, "gpt-4o-mini-tts", "ash", "Talk like a minion.", pitch_semitones=0.0, speed=1.0)
     wav_bytes = await tts.synthesize("Bello!")
     samples = decode_wav(wav_bytes)
     assert abs(len(samples) - 8000) <= 8
@@ -540,3 +540,31 @@ def wav_header_only():
 
 def test_wav_from_pcm16_empty_is_valid_header():
     assert wav_from_pcm16(np.zeros(0, dtype=np.int16), 16000) == wav_header_only()
+
+
+async def test_openai_tts_speed_shortens_output():
+    pytest.importorskip("librosa")
+    client = FakeOpenAI(pcm=pcm_sine(seconds=1.0, hz=300.0))
+    tts = OpenAITTS(client, "m", "ash", "", pitch_semitones=0.0, speed=2.0)
+    samples = decode_wav(await tts.synthesize("Bello!"))
+    assert abs(len(samples) - 8000) <= 400
+
+
+def test_tts_instructions_describe_a_minion_reading_minionese():
+    from bob.providers_cloud import TTS_INSTRUCTIONS
+
+    assert "Minion" in TTS_INSTRUCTIONS
+    assert "Minionese" in TTS_INSTRUCTIONS and "as written" in TTS_INSTRUCTIONS
+
+
+def test_build_providers_passes_speed_to_tts(monkeypatch):
+    import sys
+
+    from bob.config import Settings
+
+    fake_openai = types.ModuleType("openai")
+    fake_openai.OpenAI = lambda api_key: SimpleNamespace(kind="sync", key=api_key)
+    fake_openai.AsyncOpenAI = lambda api_key: SimpleNamespace(kind="async", key=api_key)
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
+    _, _, tts = build_providers(Settings(mode="cloud", openai_api_key="sk-test", speed=1.3))
+    assert tts.speed == 1.3

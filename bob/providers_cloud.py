@@ -11,95 +11,39 @@ import io
 import json
 import logging
 import uuid
-import wave
 
 import numpy as np
 
+from . import voicefx
 from .providers import decode_wav
 
 log = logging.getLogger(__name__)
 
-TARGET_SR = 16000
+TARGET_SR = voicefx.TARGET_SR
 OPENAI_PCM_SR = 24000  # OpenAI `response_format="pcm"` is 24 kHz s16le mono.
 MIN_TURN_SECONDS = 0.4
 MIN_TURN_RMS = 0.002
 
 TTS_INSTRUCTIONS = (
-    "Speak as a sweet, childlike little robot: bright, bouncy and warm, with playful energy. "
-    "Keep a quick pace, clear diction, and sound delighted, like you just found a banana."
+    "Voice: a Minion from Despicable Me. Tiny, high-pitched and squeaky, giddy and giggly, fast "
+    "and bouncy, sing-song with big swoops up on happy words, and a playful cartoon accent with "
+    "Italian and Spanish flavoured vowels. The text is mostly Minionese gibberish: pronounce it "
+    "exactly as written, syllable by syllable, with total confidence, as if it were a real "
+    "language. Sound delighted, like you just found a banana."
 )
 
-
-# --- audio helpers ----------------------------------------------------------
-
-
-def _to_int16(samples: np.ndarray) -> np.ndarray:
-    samples = np.asarray(samples)
-    if samples.dtype == np.int16:
-        return samples
-    if samples.dtype.kind == "f":
-        return np.clip(np.asarray(samples, dtype=np.float64) * 32768.0, -32768, 32767).astype(np.int16)
-    return samples.astype(np.int16)
-
-
-def _to_float(samples: np.ndarray) -> np.ndarray:
-    samples = np.asarray(samples)
-    if samples.dtype.kind == "f":
-        return samples.astype(np.float32)
-    return samples.astype(np.float32) / 32768.0
-
-
-def wav_from_pcm16(samples: np.ndarray, sr: int) -> bytes:
-    """Wrap int16 (or float -1..1) mono samples into a WAV container."""
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as output:
-        output.setnchannels(1)
-        output.setsampwidth(2)
-        output.setframerate(sr)
-        output.writeframes(_to_int16(samples).astype("<i2").tobytes())
-    return buffer.getvalue()
+# Audio helpers live in bob.voicefx; re-exported here for the phrase renderer and tests.
+_to_int16, _to_float = voicefx.to_int16, voicefx.to_float
+wav_from_pcm16, resample, pitch_shift_wav, voice_fx = (
+    voicefx.wav_from_pcm16,
+    voicefx.resample,
+    voicefx.pitch_shift_wav,
+    voicefx.voice_fx,
+)
 
 
 def pcm16_from_bytes(raw: bytes) -> np.ndarray:
     return np.frombuffer(raw[: len(raw) - len(raw) % 2], dtype="<i2")
-
-
-def resample(samples: np.ndarray, sr_in: int, sr_out: int) -> np.ndarray:
-    """Resample float samples; librosa when available, linear interpolation otherwise."""
-    samples = _to_float(samples)
-    if sr_in == sr_out or len(samples) == 0:
-        return samples
-    try:
-        import librosa
-
-        return librosa.resample(samples, orig_sr=sr_in, target_sr=sr_out).astype(np.float32)
-    except ImportError:
-        count = int(round(len(samples) * sr_out / sr_in))
-        positions = np.arange(count) * (len(samples) / count)
-        return np.interp(positions, np.arange(len(samples)), samples).astype(np.float32)
-
-
-def pitch_shift_wav(pcm16: np.ndarray, sr: int, semitones: float) -> np.ndarray:
-    """Shift pitch by `semitones`. Returns the same dtype family as the input (int16 in, int16 out).
-
-    Uses `librosa.effects.pitch_shift` (duration preserving) when importable, else a resample-based
-    chipmunk shift that also shortens the clip by 2**(semitones/12).
-    """
-    pcm16 = np.asarray(pcm16)
-    if not semitones or len(pcm16) == 0:
-        return pcm16
-    as_int = pcm16.dtype.kind != "f"
-    samples = _to_float(pcm16)
-    try:
-        import librosa
-
-        shifted = librosa.effects.pitch_shift(samples, sr=sr, n_steps=float(semitones)).astype(np.float32)
-    except ImportError:
-        ratio = 2 ** (semitones / 12)
-        count = max(1, int(round(len(samples) / ratio)))
-        positions = np.arange(count) * ratio
-        shifted = np.interp(positions, np.arange(len(samples)), samples).astype(np.float32)
-    return _to_int16(shifted) if as_int else shifted
 
 
 # --- OpenAI -----------------------------------------------------------------
@@ -274,13 +218,15 @@ class OpenAITTS:
         model: str = "gpt-4o-mini-tts",
         voice: str = "ash",
         instructions: str = TTS_INSTRUCTIONS,
-        pitch_semitones: float = 5.0,
+        pitch_semitones: float = voicefx.DEFAULT_PITCH_SEMITONES,
+        speed: float = voicefx.DEFAULT_SPEED,
     ):
         self.client = client
         self.model = model
         self.voice = voice
         self.instructions = instructions
         self.pitch_semitones = pitch_semitones
+        self.speed = speed
 
     async def synthesize(self, text: str) -> bytes:
         request = {"model": self.model, "voice": self.voice, "input": text, "response_format": "pcm"}
@@ -294,7 +240,7 @@ class OpenAITTS:
 
     def _postprocess(self, raw: bytes) -> bytes:
         samples = resample(pcm16_from_bytes(raw), OPENAI_PCM_SR, TARGET_SR)
-        samples = pitch_shift_wav(samples, TARGET_SR, self.pitch_semitones)
+        samples = voice_fx(samples, TARGET_SR, self.pitch_semitones, self.speed)
         return wav_from_pcm16(samples, TARGET_SR)
 
 
@@ -397,6 +343,7 @@ def build_providers(settings):
         settings.tts_voice,
         TTS_INSTRUCTIONS,
         settings.pitch_semitones,
+        settings.speed,
     )
     if settings.local_fallback:
         stt = FallbackSTT(stt, LocalSTT())

@@ -121,10 +121,17 @@ def build_synthesizer(provider: str, voice_hint: str):
             raise RuntimeError("OPENAI_API_KEY is not set")
         import openai
 
-        from bob.providers_cloud import OpenAITTS
+        from bob import voicefx
+        from bob.providers_cloud import TTS_INSTRUCTIONS, OpenAITTS
 
-        tts = OpenAITTS(openai.AsyncOpenAI(api_key=api_key), OPENAI_MODEL, OPENAI_VOICE)
-        return tts.synthesize, f"{OPENAI_MODEL}/{OPENAI_VOICE}"
+        # Same voice, pitch and speed as the live conversation, so cached clips match it.
+        voice = os.environ.get("BOB_TTS_VOICE", "").strip() or OPENAI_VOICE
+        pitch = float(os.environ.get("BOB_PITCH_SEMITONES", voicefx.DEFAULT_PITCH_SEMITONES))
+        speed = float(os.environ.get("BOB_SPEED", voicefx.DEFAULT_SPEED))
+        tts = OpenAITTS(
+            openai.AsyncOpenAI(api_key=api_key), OPENAI_MODEL, voice, TTS_INSTRUCTIONS, pitch, speed
+        )
+        return tts.synthesize, f"{OPENAI_MODEL}/{voice}"
     raise ValueError(f"unknown provider {provider!r}")
 
 
